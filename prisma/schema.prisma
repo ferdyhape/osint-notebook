@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Case {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?  @db.Text
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  entities      Entity[]
+  relationships Relationship[]
+  notes         Note[]
+}
+
+model Entity {
+  id         Int      @id @default(autoincrement())
+  caseId     Int
+  type       String
+  value      String
+  attributes Json?
+  source     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  notes           Note[]
+  relationshipsA  Relationship[] @relation("EntityA")
+  relationshipsB  Relationship[] @relation("EntityB")
+
+  @@index([caseId])
+  @@index([type])
+}
+
+model Relationship {
+  id           Int      @id @default(autoincrement())
+  caseId       Int
+  entityAId    Int
+  entityBId    Int
+  relationType String
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  case    Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  entityA Entity @relation("EntityA", fields: [entityAId], references: [id], onDelete: Cascade)
+  entityB Entity @relation("EntityB", fields: [entityBId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([entityAId])
+  @@index([entityBId])
+}
+
+model Note {
+  id        Int      @id @default(autoincrement())
+  caseId    Int
+  entityId  Int?
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  case   Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  entity Entity? @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([entityId])
+}
+
+model PivotRule {
+  id          Int      @id @default(autoincrement())
+  entityType  String
+  title       String
+  description String   @db.Text
+  actionType  String
+  urlTemplate String?
+  category    String
+  isFree      Boolean  @default(true)
+  combinable  Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([entityType])
+}
