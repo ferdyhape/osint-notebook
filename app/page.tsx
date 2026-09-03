@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   const totalEntities = cases.reduce((sum, c) => sum + c._count.entities, 0);
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-8">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="page-title">Cases</h1>
@@ -28,7 +28,7 @@ export default async function DashboardPage() {
       </div>
 
       {cases.length === 0 ? (
-        <div className="card border-dashed p-10 text-center">
+        <div className="card border-dashed p-8 text-center">
           <p className="item-title">No cases yet</p>
           <p className="text-sm text-muted mt-1">
             Create a case to start tracking what you find.

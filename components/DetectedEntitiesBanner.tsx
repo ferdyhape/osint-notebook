@@ -40,7 +40,7 @@ export function DetectedEntitiesBanner({
   }
 
   return (
-    <div className="card bg-accent-soft/50 px-4 py-3">
+    <div className="card bg-accent-soft px-4 py-3">
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-sm text-muted">Found in this case:</span>
         {detected.map((item) => (

@@ -115,6 +115,20 @@ dialog::backdrop {
 }
 
 
+/* --- Spacing conventions ---
+   Kept as utility classes rather than components, so these are the values to
+   reach for when adding a screen:
+
+     page shell          space-y-8      title block, then sections
+     section             space-y-3      heading, then its content
+     page header row     flex items-end justify-between gap-4 flex-wrap
+     section header row  flex items-center justify-between gap-3
+     card — form/content p-4
+     card — list row     p-3.5
+     card — empty state  p-8 text-center
+     banner / toolbar    px-4 py-3
+     card grid           gap-4          two-column layout: gap-8 */
+
 /* --- Type scale ---
    Archivo (display) for titles, Plex Sans for prose/controls, Plex Mono for data. */
 

@@ -46,7 +46,7 @@ export function PivotSuggestionsPanel({
 
   if (suggestions.length === 0) {
     return (
-      <div className="card border-dashed p-6 text-center">
+      <div className="card border-dashed p-8 text-center">
         <p className="text-sm text-muted">
           No suggestions for this type yet. Add one on the{" "}
           <a href="/pivot-rules" className="text-accent hover:underline">

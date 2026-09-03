@@ -38,7 +38,7 @@ export default async function EntityDetailPage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
         <div className="min-w-0">
           <Link href={`/cases/${caseIdNum}`} className="btn btn-ghost text-xs">
             ← Back to case
@@ -90,17 +90,17 @@ export default async function EntityDetailPage({
           <PivotSuggestionsPanel caseId={caseIdNum} entityId={entityIdNum} />
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="space-y-3">
             <h2 className="section-title">Related entities</h2>
             {related.length === 0 ? (
-              <div className="card border-dashed p-6 text-center">
+              <div className="card border-dashed p-8 text-center">
                 <p className="text-sm text-muted">Nothing linked to this yet.</p>
               </div>
             ) : (
               <ul className="space-y-2">
                 {related.map((r, i) => (
-                  <li key={i} className="card p-3 text-sm flex items-center justify-between gap-2">
+                  <li key={i} className="card p-3.5 text-sm flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <span className="text-muted">{r.relationType}: </span>
                       <Link

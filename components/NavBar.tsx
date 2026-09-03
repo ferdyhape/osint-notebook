@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserMenu } from "@/components/UserMenu";
@@ -15,8 +16,9 @@ export function NavBar({ user }: { user: { email: string; name: string | null } 
   return (
     <header className="border-b border-border bg-surface">
       <div className="mx-auto max-w-5xl px-6 h-14 flex items-center justify-between gap-4">
-        <Link href="/" className="font-display text-base font-bold tracking-tight">
-          OSINT Notebook
+        <Link href="/" className="flex items-center gap-2">
+          <Image src="/logo-mark.png" alt="" width={24} height={24} priority />
+          <span className="font-display text-base font-bold tracking-tight">OSINT Notebook</span>
         </Link>
 
         <nav className="flex items-center gap-1">

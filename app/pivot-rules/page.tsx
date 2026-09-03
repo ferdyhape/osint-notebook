@@ -10,7 +10,7 @@ export default async function PivotRulesPage() {
   });
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-8">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="page-title">Pivot Rules</h1>
