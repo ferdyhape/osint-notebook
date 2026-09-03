@@ -49,9 +49,25 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-screen flex flex-col">
         <NavBar user={user} />
         <main className="flex-1 mx-auto w-full max-w-5xl px-6 py-10">{children}</main>
+        <footer className="border-t border-border">
+          <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between gap-4 text-xs text-muted">
+            <span>OSINT Notebook</span>
+            <span>
+              by{" "}
+              <a
+                href="https://ferdyhape.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-accent"
+              >
+                ferdyhape.com
+              </a>
+            </span>
+          </div>
+        </footer>
       </body>
     </html>
   );
