@@ -46,3 +46,6 @@ DEPLOY-AAPANEL.md
 
 # logo/icon work in progress
 /brand
+
+# local build bundles for upload
+*.zip
