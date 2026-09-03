@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { NavBar } from "@/components/NavBar";
+import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -26,11 +27,30 @@ export const metadata: Metadata = {
   description: "Case notebook & pivot suggestions for OSINT investigations",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// Applies the saved theme before first paint, so there is no flash of the wrong one.
+const themeScript = `
+try {
+  var t = localStorage.getItem('theme');
+  if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+} catch (e) {}
+`;
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const user = await getCurrentUser();
+
   return (
-    <html lang="en" className={`${archivo.variable} ${plexSans.variable} ${plexMono.variable}`}>
+    // The theme script sets data-theme before hydration, so this element alone
+    // is expected to differ from the server HTML.
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${archivo.variable} ${plexSans.variable} ${plexMono.variable}`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col">
-        <NavBar />
+        <NavBar user={user} />
         <main className="flex-1 mx-auto w-full max-w-5xl px-6 py-10">{children}</main>
       </body>
     </html>

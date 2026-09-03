@@ -45,7 +45,7 @@ export function EntityTable({
   return (
     <div className="space-y-2">
       {showCombine && (
-        <div className="card bg-accent-soft/50 px-3 py-2.5 flex items-center gap-3 flex-wrap">
+        <div className="card bg-accent-soft px-3 py-2.5 flex items-center gap-3 flex-wrap">
           <span className="text-xs font-medium">{selectedValues.length} selected</span>
 
           <div className="flex rounded-md border border-border overflow-hidden">
@@ -54,7 +54,7 @@ export function EntityTable({
                 key={op}
                 onClick={() => setOperator(op)}
                 className={`font-data text-xs px-2.5 py-1 transition-colors ${
-                  operator === op ? "bg-accent text-white" : "bg-surface text-muted hover:text-text"
+                  operator === op ? "bg-accent text-on-accent" : "bg-surface text-muted hover:text-text"
                 }`}
               >
                 {op}
@@ -89,7 +89,7 @@ export function EntityTable({
 
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
-          <thead>
+          <thead className="bg-surface-subtle">
             <tr className="border-b border-border text-xs text-muted">
               <th className="w-9 px-3 py-2.5" />
               <th className="text-left px-4 py-2.5 font-medium">Type</th>
@@ -104,7 +104,7 @@ export function EntityTable({
               <tr
                 key={e.id}
                 className={`group ${
-                  selectedIds.includes(e.id) ? "bg-accent-soft/40" : "hover:bg-bg/60"
+                  selectedIds.includes(e.id) ? "bg-accent-soft" : "hover:bg-surface-subtle"
                 }`}
               >
                 <td className="px-3 py-2.5">

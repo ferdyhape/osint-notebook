@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -562,6 +563,31 @@ const rules: SeedRule[] = [
   },
 ];
 
+/** Creates the first sign-in account from ADMIN_EMAIL / ADMIN_PASSWORD in .env. */
+async function seedAdminUser() {
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    const count = await prisma.user.count();
+    if (count === 0) {
+      console.log("No account created: set ADMIN_EMAIL and ADMIN_PASSWORD in .env, then re-run.");
+    }
+    return;
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    console.log(`Account: ${email} already exists, left as is.`);
+    return;
+  }
+
+  await prisma.user.create({
+    data: { email, passwordHash: await bcrypt.hash(password, 12) },
+  });
+  console.log(`Account: created ${email}.`);
+}
+
 async function main() {
   const existing = await prisma.pivotRule.findMany({
     select: { id: true, title: true, description: true },
@@ -612,6 +638,8 @@ async function main() {
   console.log(
     `Pivot rules: ${translated} translated, ${created} created, ${skipped} left untouched (edited by hand).`
   );
+
+  await seedAdminUser();
 }
 
 main()
