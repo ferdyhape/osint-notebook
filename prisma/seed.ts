@@ -563,18 +563,18 @@ const rules: SeedRule[] = [
   },
 ];
 
-/** Creates the first sign-in account from ADMIN_EMAIL / ADMIN_PASSWORD in .env. */
-async function seedAdminUser() {
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const password = process.env.ADMIN_PASSWORD;
+/** The account a fresh install can sign in with. Override any of these in .env. */
+const DEFAULT_ACCOUNT = {
+  email: "notebook@osint.com",
+  name: "Osint Notebook User",
+  password: "password!",
+};
 
-  if (!email || !password) {
-    const count = await prisma.user.count();
-    if (count === 0) {
-      console.log("No account created: set ADMIN_EMAIL and ADMIN_PASSWORD in .env, then re-run.");
-    }
-    return;
-  }
+/** Creates the first sign-in account. Does nothing if that email already exists. */
+async function seedAdminUser() {
+  const email = (process.env.ADMIN_EMAIL || DEFAULT_ACCOUNT.email).trim().toLowerCase();
+  const name = process.env.ADMIN_NAME || DEFAULT_ACCOUNT.name;
+  const password = process.env.ADMIN_PASSWORD || DEFAULT_ACCOUNT.password;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -583,9 +583,13 @@ async function seedAdminUser() {
   }
 
   await prisma.user.create({
-    data: { email, passwordHash: await bcrypt.hash(password, 12) },
+    data: { email, name, passwordHash: await bcrypt.hash(password, 12) },
   });
   console.log(`Account: created ${email}.`);
+
+  if (password === DEFAULT_ACCOUNT.password) {
+    console.log("  ! This is the published default password. Change it before the app is reachable by anyone else.");
+  }
 }
 
 async function main() {
