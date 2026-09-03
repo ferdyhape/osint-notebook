@@ -49,3 +49,6 @@ DEPLOY-AAPANEL.md
 
 # local build bundles for upload
 *.zip
+
+# portfolio write-up draft
+write-to-post.md
