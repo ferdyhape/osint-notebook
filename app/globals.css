@@ -368,6 +368,54 @@ dialog::backdrop {
   background: var(--color-surface-subtle);
 }
 
+/* A menu row with a control on the right. Set here rather than with utility
+   classes, because .menu-item's own display would win the cascade. */
+.menu-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  transition: background-color 140ms ease, border-color 140ms ease;
+  flex-shrink: 0;
+}
+
+.switch[data-on="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  transition: transform 140ms ease;
+}
+
+.switch[data-on="true"] .switch-knob {
+  transform: translateX(13px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .switch-knob {
+    transition: none;
+  }
+}
+
 /* --- Pivot trail (discovery lineage breadcrumb) --- */
 
 .trail {

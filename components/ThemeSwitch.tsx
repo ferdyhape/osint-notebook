@@ -24,9 +24,10 @@ function subscribe(onChange: () => void) {
   };
 }
 
-export function ThemeToggle() {
-  // null on the server and until hydration, so the icon never contradicts the page.
+export function ThemeSwitch() {
+  // null until hydration, so the switch can never contradict the rendered page.
   const theme = useSyncExternalStore<Theme | null>(subscribe, readTheme, () => null);
+  const isDark = theme === "dark";
 
   function toggle() {
     const next: Theme = readTheme() === "dark" ? "light" : "dark";
@@ -39,11 +40,18 @@ export function ThemeToggle() {
     listeners.forEach((notify) => notify());
   }
 
-  const label = theme === "dark" ? "Switch to light theme" : "Switch to dark theme";
-
   return (
-    <button onClick={toggle} className="btn btn-row" aria-label={label} title={label}>
-      {theme === "dark" ? "☀" : theme === "light" ? "☾" : ""}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isDark}
+      onClick={toggle}
+      className="menu-item menu-item-row"
+    >
+      <span>Dark mode</span>
+      <span className="switch" data-on={isDark} aria-hidden="true">
+        <span className="switch-knob" />
+      </span>
     </button>
   );
 }

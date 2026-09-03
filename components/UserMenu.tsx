@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ThemeSwitch } from "@/components/ThemeSwitch";
 
 function initials(name: string | null, email: string) {
   const source = name?.trim() || email.split("@")[0];
@@ -63,6 +64,7 @@ export function UserMenu({ user }: { user: { email: string; name: string | null 
             <Link href="/profile" role="menuitem" onClick={() => setOpen(false)} className="menu-item">
               Account settings
             </Link>
+            <ThemeSwitch />
             <button role="menuitem" onClick={signOut} className="menu-item">
               Sign out
             </button>

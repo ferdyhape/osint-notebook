@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserMenu } from "@/components/UserMenu";
 
 const LINKS = [
@@ -40,7 +39,6 @@ export function NavBar({ user }: { user: { email: string; name: string | null } 
               })}
             </>
           )}
-          <ThemeToggle />
           {user && <UserMenu user={user} />}
         </nav>
       </div>
