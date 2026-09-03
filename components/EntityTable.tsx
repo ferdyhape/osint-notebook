@@ -72,7 +72,7 @@ export function EntityTable({
                   href={resolvedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn text-xs py-1 px-2.5"
+                  className="btn btn-sm"
                   title={rule.description}
                 >
                   {rule.title} ↗
@@ -81,7 +81,7 @@ export function EntityTable({
             })}
           </div>
 
-          <button onClick={() => setSelectedIds([])} className="btn btn-ghost text-xs ml-auto">
+          <button onClick={() => setSelectedIds([])} className="btn btn-ghost btn-sm ml-auto">
             Clear
           </button>
         </div>

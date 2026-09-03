@@ -77,7 +77,7 @@ export function PivotSuggestionsPanel({
                 href={s.resolvedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn shrink-0 text-xs"
+                className="btn btn-sm shrink-0"
               >
                 Open ↗
               </a>
@@ -95,7 +95,7 @@ export function PivotSuggestionsPanel({
           ) : (
             <button
               onClick={() => setLogFormOpenFor(s.id)}
-              className="btn btn-ghost mt-2 text-xs hover:underline"
+              className="btn btn-ghost btn-sm mt-2 hover:underline"
             >
               + Log a finding from this step
             </button>

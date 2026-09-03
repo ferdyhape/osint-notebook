@@ -26,7 +26,7 @@ export function DeleteCaseButton({ caseId, caseName }: { caseId: number; caseNam
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn btn-danger text-xs">
+      <button onClick={() => setOpen(true)} className="btn btn-danger btn-sm">
         Delete
       </button>
 

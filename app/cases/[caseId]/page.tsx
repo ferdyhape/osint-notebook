@@ -9,6 +9,7 @@ import { AddNoteModalButton } from "@/components/AddNoteModalButton";
 import { CaseFormModal } from "@/components/CaseFormModal";
 import { DeleteCaseButton } from "@/components/DeleteCaseButton";
 import { DetectedEntitiesBanner } from "@/components/DetectedEntitiesBanner";
+import { ExportMenu } from "@/components/ExportMenu";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function CaseDetailPage({
     <div className="space-y-8">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <Link href="/" className="btn btn-ghost text-xs">
+          <Link href="/" className="btn btn-ghost btn-sm">
             ← All cases
           </Link>
           <div className="flex items-center gap-3 mt-2 flex-wrap">
@@ -57,9 +58,10 @@ export default async function CaseDetailPage({
             <p className="text-sm text-muted mt-1.5 max-w-xl">{found.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          <ExportMenu caseId={id} />
           <CaseFormModal
-            trigger="row"
+            trigger="header"
             initial={{
               id: found.id,
               name: found.name,

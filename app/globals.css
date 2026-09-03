@@ -126,6 +126,11 @@ dialog::backdrop {
      card — form/content p-4
      card — list row     p-3.5
      card — empty state  p-8 text-center
+     buttons             .btn-primary  one main create action per page
+                         .btn          section and page header actions (+ .btn-sm)
+                         .btn-ghost    cancel and back links
+                         .btn-danger   destructive action in a page header
+                         .btn-row      hover actions inside a table or list row
      banner / toolbar    px-4 py-3
      card grid           gap-4          two-column layout: gap-8 */
 
@@ -186,6 +191,13 @@ dialog::backdrop {
   border-color: var(--color-text);
 }
 
+/* The only smaller size. Anything that needs to be more compact than .btn uses
+   this, so sizes cannot drift through one-off padding overrides. */
+.btn-sm {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+}
+
 .btn:active {
   transform: translateY(1px);
 }
@@ -235,18 +247,6 @@ dialog::backdrop {
   border-color: transparent;
   background: transparent;
   color: var(--color-text);
-}
-
-.btn-danger-ghost {
-  border-color: transparent;
-  background: transparent;
-  color: var(--color-muted);
-}
-
-.btn-danger-ghost:hover {
-  border-color: transparent;
-  background: transparent;
-  color: var(--color-danger);
 }
 
 .btn-danger {

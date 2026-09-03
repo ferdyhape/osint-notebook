@@ -7,7 +7,7 @@ import { Modal } from "@/components/Modal";
 type CaseFormModalProps = {
   /** Omit to create a new case. */
   initial?: { id: number; name: string; description: string | null; status: string };
-  trigger?: "primary" | "row";
+  trigger?: "primary" | "header";
 };
 
 export function CaseFormModal({ initial, trigger = "primary" }: CaseFormModalProps) {
@@ -60,7 +60,7 @@ export function CaseFormModal({ initial, trigger = "primary" }: CaseFormModalPro
     <>
       <button
         onClick={openForm}
-        className={trigger === "primary" ? "btn btn-primary" : "btn btn-row"}
+        className={trigger === "primary" ? "btn btn-primary" : "btn btn-sm"}
       >
         {isEdit ? "Edit" : "New case"}
       </button>

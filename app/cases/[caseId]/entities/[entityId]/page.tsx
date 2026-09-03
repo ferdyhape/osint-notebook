@@ -40,7 +40,7 @@ export default async function EntityDetailPage({
     <div className="space-y-8">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <Link href={`/cases/${caseIdNum}`} className="btn btn-ghost text-xs">
+          <Link href={`/cases/${caseIdNum}`} className="btn btn-ghost btn-sm">
             ← Back to case
           </Link>
 
@@ -69,6 +69,7 @@ export default async function EntityDetailPage({
         <div className="flex items-center gap-1 shrink-0">
           <EntityFormModal
             caseId={caseIdNum}
+            placement="header"
             initial={{
               id: entity.id,
               type: entity.type,
@@ -79,6 +80,7 @@ export default async function EntityDetailPage({
           <DeleteEntityButton
             entityId={entity.id}
             entityValue={entity.value}
+            placement="header"
             redirectTo={`/cases/${caseIdNum}`}
           />
         </div>

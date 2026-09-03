@@ -9,7 +9,7 @@ export function AddNoteModalButton({ caseId, entityId }: { caseId: number; entit
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn text-xs">
+      <button onClick={() => setOpen(true)} className="btn btn-sm">
         Add note
       </button>
 

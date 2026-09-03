@@ -83,13 +83,13 @@ export function NoteTimeline({ notes }: { notes: NoteRow[] }) {
                 />
                 {error && <p className="text-sm text-danger">{error}</p>}
                 <div className="flex justify-end gap-2">
-                  <button onClick={() => setEditingId(null)} className="btn btn-ghost text-xs">
+                  <button onClick={() => setEditingId(null)} className="btn btn-ghost btn-sm">
                     Cancel
                   </button>
                   <button
                     onClick={() => saveEdit(n.id)}
                     disabled={busyId === n.id}
-                    className="btn btn-primary text-xs disabled:opacity-50"
+                    className="btn btn-primary btn-sm disabled:opacity-50"
                   >
                     {busyId === n.id ? "Saving…" : "Save"}
                   </button>

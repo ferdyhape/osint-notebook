@@ -50,7 +50,7 @@ export function DetectedEntitiesBanner({
             <button
               onClick={() => addEntity(item)}
               disabled={addingValue === item.value}
-              className="btn text-xs py-1 px-2.5 disabled:opacity-50"
+              className="btn btn-sm disabled:opacity-50"
             >
               {addingValue === item.value ? "Adding…" : "Add as entity"}
             </button>

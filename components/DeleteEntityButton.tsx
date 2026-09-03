@@ -8,11 +8,14 @@ export function DeleteEntityButton({
   entityId,
   entityValue,
   redirectTo,
+  placement = "row",
 }: {
   entityId: number;
   entityValue: string;
   /** Navigate here after deleting — used when deleting from the entity's own page. */
   redirectTo?: string;
+  /** Where the trigger sits: a page header, or a table row. */
+  placement?: "header" | "row";
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -37,7 +40,10 @@ export function DeleteEntityButton({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn btn-row btn-row-danger">
+      <button
+        onClick={() => setOpen(true)}
+        className={placement === "row" ? "btn btn-row btn-row-danger" : "btn btn-danger btn-sm"}
+      >
         Delete
       </button>
 
