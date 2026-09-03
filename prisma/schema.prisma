@@ -1,5 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  // "native" builds for this machine; the Linux target is what the Ubuntu 22
+  // server needs, so a node_modules built on Windows still runs there.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
