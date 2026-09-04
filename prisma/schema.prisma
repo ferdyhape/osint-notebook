@@ -12,15 +12,20 @@ datasource db {
 
 model Case {
   id          Int      @id @default(autoincrement())
+  userId      Int
   name        String
   description String?  @db.Text
   status      String   @default("active")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  owner         User           @relation(fields: [userId], references: [id], onDelete: Restrict)
   entities      Entity[]
   relationships Relationship[]
   notes         Note[]
+  shares        CaseShare[]
+
+  @@index([userId])
 }
 
 model Entity {
@@ -30,6 +35,8 @@ model Entity {
   value      String
   attributes Json?
   source     String?
+  positionX  Float?
+  positionY  Float?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -93,10 +100,52 @@ model PivotRule {
 }
 
 model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  name            String?
+  passwordHash    String
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  cases              Case[]
+  createdShares      CaseShare[]         @relation("CaseShareCreatedBy")
+  shareGrants        CaseShare[]         @relation("CaseShareUser")
+  verificationTokens VerificationToken[]
+}
+
+/// Email-based shares (identity-gated, viewer|editor) AND the case's single
+/// public link (anonymous, always viewer). `kind` discriminates the two.
+model CaseShare {
   id           Int      @id @default(autoincrement())
-  email        String   @unique
-  name         String?
-  passwordHash String
+  caseId       Int
+  kind         String // "email" | "link"
+  role         String   @default("viewer") // "viewer" | "editor" — link rows are always "viewer"
+  invitedEmail String? // kind="email" only, lowercased/trimmed
+  userId       Int? // resolved once the invitee signs in with a matching email
+  linkToken    String?  @unique // kind="link" only
+  createdById  Int
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  case      Case  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user      User? @relation("CaseShareUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User  @relation("CaseShareCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@unique([caseId, invitedEmail])
+  @@index([caseId])
+  @@index([userId])
+}
+
+model VerificationToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  purpose   String // "email_verify"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

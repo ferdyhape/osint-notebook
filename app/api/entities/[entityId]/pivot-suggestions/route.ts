@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ANY_ENTITY_TYPE, resolvePivotSuggestion } from "@/lib/pivot";
+import { requireCaseAccess } from "@/lib/case-access";
 
 type Params = { params: Promise<{ entityId: string }> };
 
@@ -10,6 +11,8 @@ export async function GET(_request: NextRequest, { params }: Params) {
   if (!entity) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
+  const access = await requireCaseAccess(entity.caseId, "viewer");
+  if (!access.ok) return access.response;
 
   const rules = await prisma.pivotRule.findMany({
     where: { entityType: { in: [entity.type, ANY_ENTITY_TYPE] } },

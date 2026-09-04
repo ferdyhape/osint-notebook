@@ -7,9 +7,21 @@ type CaseCardProps = {
   status: string;
   entityCount: number;
   updatedAt: string;
+  /** e.g. "Shared · Viewer" / "Shared · Editor" — omit for cases the viewer owns. */
+  badge?: string;
+  ownerName?: string | null;
 };
 
-export function CaseCard({ id, name, description, status, entityCount, updatedAt }: CaseCardProps) {
+export function CaseCard({
+  id,
+  name,
+  description,
+  status,
+  entityCount,
+  updatedAt,
+  badge,
+  ownerName,
+}: CaseCardProps) {
   const active = status === "active";
   return (
     <Link
@@ -24,6 +36,12 @@ export function CaseCard({ id, name, description, status, entityCount, updatedAt
         </span>
       </div>
       {description && <p className="mt-1.5 text-sm text-muted line-clamp-2">{description}</p>}
+      {badge && (
+        <p className="mt-1.5 text-xs text-muted">
+          <span className="badge">{badge}</span>
+          {ownerName && <span className="ml-1.5">from {ownerName}</span>}
+        </p>
+      )}
       <div className="mt-4 pt-3 border-t border-border flex justify-between font-data text-xs text-muted">
         <span>
           {entityCount} {entityCount === 1 ? "entity" : "entities"}

@@ -1,30 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { caseFilename, caseToJson, caseToMarkdown } from "@/lib/export";
+import { caseFilename, caseToJson, caseToMarkdown, getCaseExportData } from "@/lib/export";
+import { requireCaseAccess } from "@/lib/case-access";
 
 type Params = { params: Promise<{ caseId: string }> };
 
 export async function GET(request: NextRequest, { params }: Params) {
   const { caseId } = await params;
+  const id = Number(caseId);
+  const access = await requireCaseAccess(id, "viewer");
+  if (!access.ok) return access.response;
+
   const format = request.nextUrl.searchParams.get("format") === "json" ? "json" : "markdown";
 
-  const found = await prisma.case.findUnique({
-    where: { id: Number(caseId) },
-    include: {
-      entities: { orderBy: { createdAt: "asc" } },
-      relationships: {
-        orderBy: { createdAt: "asc" },
-        include: {
-          entityA: { select: { value: true, type: true } },
-          entityB: { select: { value: true, type: true } },
-        },
-      },
-      notes: {
-        orderBy: { createdAt: "asc" },
-        include: { entity: { select: { value: true, type: true } } },
-      },
-    },
-  });
+  const found = await getCaseExportData(id);
 
   if (!found) {
     return NextResponse.json({ error: "not found" }, { status: 404 });

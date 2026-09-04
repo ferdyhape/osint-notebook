@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
+import { readSessionToken } from "@/lib/session-token";
 
 const SESSION_COOKIE = "osint_session";
 
 /** Reachable without signing in. Everything else redirects to /login. */
-const PUBLIC_PATHS = ["/login", "/api/auth/login"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/register",
+  "/share",
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/verify",
+  "/api/share",
+];
 
 async function hasValidSession(token: string | undefined) {
   if (!token) return false;
-  const value = process.env.SESSION_SECRET;
-  if (!value) return false;
-  try {
-    await jwtVerify(token, new TextEncoder().encode(value));
-    return true;
-  } catch {
-    return false;
-  }
+  const userId = await readSessionToken(token);
+  return userId !== null;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const signedIn = await hasValidSession(request.cookies.get(SESSION_COOKIE)?.value);
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -33,7 +35,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (signedIn && pathname === "/login") {
+  if (signedIn && (pathname === "/login" || pathname === "/register")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";
@@ -45,5 +47,5 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   // Everything except Next internals and static files.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

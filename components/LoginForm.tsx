@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export function LoginForm() {
@@ -66,6 +67,15 @@ export function LoginForm() {
       >
         {submitting ? "Signing in…" : "Sign in"}
       </button>
+      <p className="text-sm text-muted text-center">
+        New here?{" "}
+        <Link
+          href={`/register${params.get("next") ? `?next=${encodeURIComponent(params.get("next")!)}` : ""}`}
+          className="text-accent hover:underline"
+        >
+          Create an account
+        </Link>
+      </p>
     </form>
   );
 }

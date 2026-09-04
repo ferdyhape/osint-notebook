@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { NavBar } from "@/components/NavBar";
+import { VerifyBanner } from "@/components/VerifyBanner";
 import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-screen flex flex-col">
         <NavBar user={user} />
+        {user && !user.emailVerifiedAt && <VerifyBanner />}
         <main className="flex-1 mx-auto w-full max-w-5xl px-6 py-10">{children}</main>
         <footer className="border-t border-border">
           <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between gap-4 text-xs text-muted">

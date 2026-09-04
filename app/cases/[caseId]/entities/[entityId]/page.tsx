@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { getCaseAccess } from "@/lib/case-access";
 import { NoteTimeline } from "@/components/NoteTimeline";
 import { AddNoteModalButton } from "@/components/AddNoteModalButton";
 import { PivotSuggestionsPanel } from "@/components/PivotSuggestionsPanel";
@@ -17,6 +19,11 @@ export default async function EntityDetailPage({
   const { caseId, entityId } = await params;
   const caseIdNum = Number(caseId);
   const entityIdNum = Number(entityId);
+
+  const user = await getCurrentUser();
+  const role = user ? await getCaseAccess(caseIdNum, user) : null;
+  if (!role) notFound();
+  const canEdit = role === "owner" || role === "editor";
 
   const entity = await prisma.entity.findUnique({
     where: { id: entityIdNum },
@@ -66,24 +73,26 @@ export default async function EntityDetailPage({
           {entity.source && <p className="text-sm text-muted mt-1">Source: {entity.source}</p>}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
-          <EntityFormModal
-            caseId={caseIdNum}
-            placement="header"
-            initial={{
-              id: entity.id,
-              type: entity.type,
-              value: entity.value,
-              source: entity.source,
-            }}
-          />
-          <DeleteEntityButton
-            entityId={entity.id}
-            entityValue={entity.value}
-            placement="header"
-            redirectTo={`/cases/${caseIdNum}`}
-          />
-        </div>
+        {canEdit && (
+          <div className="flex items-center gap-1 shrink-0">
+            <EntityFormModal
+              caseId={caseIdNum}
+              placement="header"
+              initial={{
+                id: entity.id,
+                type: entity.type,
+                value: entity.value,
+                source: entity.source,
+              }}
+            />
+            <DeleteEntityButton
+              entityId={entity.id}
+              entityValue={entity.value}
+              placement="header"
+              redirectTo={`/cases/${caseIdNum}`}
+            />
+          </div>
+        )}
       </div>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -122,9 +131,10 @@ export default async function EntityDetailPage({
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <h2 className="section-title">Notes</h2>
-              <AddNoteModalButton caseId={caseIdNum} entityId={entityIdNum} />
+              {canEdit && <AddNoteModalButton caseId={caseIdNum} entityId={entityIdNum} />}
             </div>
             <NoteTimeline
+              readOnly={!canEdit}
               notes={entity.notes.map((n) => ({
                 id: n.id,
                 content: n.content,

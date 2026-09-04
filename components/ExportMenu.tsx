@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export function ExportMenu({ caseId }: { caseId: number }) {
+export function ExportMenu({ caseId, exportBase }: { caseId: number; exportBase?: string }) {
+  const base = exportBase ?? `/api/cases/${caseId}`;
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +42,7 @@ export function ExportMenu({ caseId }: { caseId: number }) {
           <div className="p-1">
             <a
               role="menuitem"
-              href={`/api/cases/${caseId}/export`}
+              href={`${base}/export`}
               onClick={() => setOpen(false)}
               className="menu-item"
             >
@@ -50,7 +51,7 @@ export function ExportMenu({ caseId }: { caseId: number }) {
             </a>
             <a
               role="menuitem"
-              href={`/api/cases/${caseId}/export?format=json`}
+              href={`${base}/export?format=json`}
               onClick={() => setOpen(false)}
               className="menu-item"
             >

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, hashPassword, verifyPassword } from "@/lib/auth";
-
-const MIN_LENGTH = 8;
+import { getCurrentUser, hashPassword, verifyPassword, MIN_PASSWORD_LENGTH as MIN_LENGTH } from "@/lib/auth";
 
 export async function PATCH(request: NextRequest) {
   const user = await getCurrentUser();

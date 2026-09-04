@@ -17,9 +17,14 @@ type Suggestion = {
 export function PivotSuggestionsPanel({
   caseId,
   entityId,
+  readOnly = false,
+  fetchUrl,
 }: {
   caseId: number;
   entityId: number;
+  readOnly?: boolean;
+  /** Overrides the default `/api/entities/[id]/pivot-suggestions` — used by the anonymous share view's token-scoped endpoint. */
+  fetchUrl?: string;
 }) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +32,7 @@ export function PivotSuggestionsPanel({
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/entities/${entityId}/pivot-suggestions`)
+    fetch(fetchUrl ?? `/api/entities/${entityId}/pivot-suggestions`)
       .then((res) => res.json())
       .then((data) => {
         if (!cancelled) setSuggestions(data);
@@ -38,7 +43,7 @@ export function PivotSuggestionsPanel({
     return () => {
       cancelled = true;
     };
-  }, [entityId]);
+  }, [entityId, fetchUrl]);
 
   if (loading) {
     return <p className="text-sm text-muted">Loading suggestions…</p>;
@@ -48,11 +53,17 @@ export function PivotSuggestionsPanel({
     return (
       <div className="card border-dashed p-8 text-center">
         <p className="text-sm text-muted">
-          No suggestions for this type yet. Add one on the{" "}
-          <a href="/pivot-rules" className="text-accent hover:underline">
-            Pivot Rules
-          </a>{" "}
-          page.
+          {readOnly ? (
+            "No suggestions for this type yet."
+          ) : (
+            <>
+              No suggestions for this type yet. Add one on the{" "}
+              <a href="/pivot-rules" className="text-accent hover:underline">
+                Pivot Rules
+              </a>{" "}
+              page.
+            </>
+          )}
         </p>
       </div>
     );
@@ -84,22 +95,23 @@ export function PivotSuggestionsPanel({
             )}
           </div>
 
-          {logFormOpenFor === s.id ? (
-            <div className="mt-3 border-t border-border pt-3">
-              <EntityForm
-                caseId={caseId}
-                relatedToEntityId={entityId}
-                onDone={() => setLogFormOpenFor(null)}
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => setLogFormOpenFor(s.id)}
-              className="btn btn-ghost btn-sm mt-2 hover:underline"
-            >
-              + Log a finding from this step
-            </button>
-          )}
+          {!readOnly &&
+            (logFormOpenFor === s.id ? (
+              <div className="mt-3 border-t border-border pt-3">
+                <EntityForm
+                  caseId={caseId}
+                  relatedToEntityId={entityId}
+                  onDone={() => setLogFormOpenFor(null)}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => setLogFormOpenFor(s.id)}
+                className="btn btn-ghost btn-sm mt-2 hover:underline"
+              >
+                + Log a finding from this step
+              </button>
+            ))}
         </li>
       ))}
     </ul>

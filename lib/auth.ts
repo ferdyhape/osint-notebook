@@ -1,19 +1,13 @@
 import "server-only";
 import bcrypt from "bcryptjs";
-import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { createSessionToken, readSessionToken, SESSION_DAYS_SECONDS } from "@/lib/session-token";
 
 export const SESSION_COOKIE = "osint_session";
-const SESSION_DAYS = 7;
+export const MIN_PASSWORD_LENGTH = 8;
 
-function secret() {
-  const value = process.env.SESSION_SECRET;
-  if (!value) {
-    throw new Error("SESSION_SECRET is not set — see .env.example");
-  }
-  return new TextEncoder().encode(value);
-}
+export { createSessionToken, readSessionToken };
 
 export function hashPassword(password: string) {
   return bcrypt.hash(password, 12);
@@ -21,24 +15,6 @@ export function hashPassword(password: string) {
 
 export function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
-}
-
-export async function createSessionToken(userId: number) {
-  return new SignJWT({ sub: String(userId) })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${SESSION_DAYS}d`)
-    .sign(secret());
-}
-
-export async function readSessionToken(token: string) {
-  try {
-    const { payload } = await jwtVerify(token, secret());
-    const id = Number(payload.sub);
-    return Number.isFinite(id) ? id : null;
-  } catch {
-    return null;
-  }
 }
 
 export async function startSession(userId: number) {
@@ -49,7 +25,7 @@ export async function startSession(userId: number) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: SESSION_DAYS * 24 * 60 * 60,
+    maxAge: SESSION_DAYS_SECONDS,
   });
 }
 
@@ -69,7 +45,7 @@ export async function getCurrentUser() {
 
   return prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true, name: true, emailVerifiedAt: true },
   });
 }
 

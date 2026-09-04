@@ -19,10 +19,15 @@ export function EntityTable({
   caseId,
   entities,
   combinableRules,
+  readOnly = false,
+  linkToDetail = true,
 }: {
   caseId: number;
   entities: EntityRow[];
   combinableRules: PivotRule[];
+  readOnly?: boolean;
+  /** False for the anonymous share view — that page has no authenticated entity-detail route to link to. */
+  linkToDetail?: boolean;
 }) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [operator, setOperator] = useState<CombineOperator>("AND");
@@ -119,25 +124,31 @@ export function EntityTable({
                   <span className="badge">{e.type}</span>
                 </td>
                 <td className="px-4 py-2.5">
-                  <Link
-                    href={`/cases/${caseId}/entities/${e.id}`}
-                    className="font-data text-[0.8125rem] font-medium hover:text-accent"
-                  >
-                    {e.value}
-                  </Link>
+                  {linkToDetail ? (
+                    <Link
+                      href={`/cases/${caseId}/entities/${e.id}`}
+                      className="font-data text-[0.8125rem] font-medium hover:text-accent"
+                    >
+                      {e.value}
+                    </Link>
+                  ) : (
+                    <span className="font-data text-[0.8125rem] font-medium">{e.value}</span>
+                  )}
                 </td>
                 <td className="px-4 py-2.5 text-muted">{e.source || "—"}</td>
                 <td className="px-4 py-2.5 text-muted font-data text-xs whitespace-nowrap">
                   {new Date(e.createdAt).toLocaleDateString("en-GB")}
                 </td>
                 <td className="px-3 py-2.5">
-                  <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    <EntityFormModal
-                      caseId={caseId}
-                      initial={{ id: e.id, type: e.type, value: e.value, source: e.source }}
-                    />
-                    <DeleteEntityButton entityId={e.id} entityValue={e.value} />
-                  </div>
+                  {!readOnly && (
+                    <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                      <EntityFormModal
+                        caseId={caseId}
+                        initial={{ id: e.id, type: e.type, value: e.value, source: e.source }}
+                      />
+                      <DeleteEntityButton entityId={e.id} entityValue={e.value} />
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
