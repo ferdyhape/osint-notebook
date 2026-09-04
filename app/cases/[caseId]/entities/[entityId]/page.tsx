@@ -8,6 +8,8 @@ import { AddNoteModalButton } from "@/components/AddNoteModalButton";
 import { PivotSuggestionsPanel } from "@/components/PivotSuggestionsPanel";
 import { EntityFormModal } from "@/components/EntityFormModal";
 import { DeleteEntityButton } from "@/components/DeleteEntityButton";
+import { CopyButton } from "@/components/CopyButton";
+import { isUrlValue } from "@/lib/pivot";
 
 export const dynamic = "force-dynamic";
 
@@ -67,32 +69,48 @@ export default async function EntityDetailPage({
           )}
 
           <div className="flex items-center gap-3 mt-2 flex-wrap">
-            <h1 className="font-data text-xl font-medium break-all">{entity.value}</h1>
+            <h1 className="text-xl font-medium break-all">
+              {isUrlValue(entity.value) ? (
+                <a
+                  href={entity.value}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-data hover:text-accent hover:underline"
+                >
+                  {entity.value}
+                </a>
+              ) : (
+                <span className="font-data">{entity.value}</span>
+              )}
+            </h1>
             <span className="badge">{entity.type}</span>
           </div>
           {entity.source && <p className="text-sm text-muted mt-1">Source: {entity.source}</p>}
         </div>
 
-        {canEdit && (
-          <div className="flex items-center gap-1 shrink-0">
-            <EntityFormModal
-              caseId={caseIdNum}
-              placement="header"
-              initial={{
-                id: entity.id,
-                type: entity.type,
-                value: entity.value,
-                source: entity.source,
-              }}
-            />
-            <DeleteEntityButton
-              entityId={entity.id}
-              entityValue={entity.value}
-              placement="header"
-              redirectTo={`/cases/${caseIdNum}`}
-            />
-          </div>
-        )}
+        <div className="flex items-center gap-1 shrink-0">
+          <CopyButton value={entity.value} className="btn btn-sm" />
+          {canEdit && (
+            <>
+              <EntityFormModal
+                caseId={caseIdNum}
+                placement="header"
+                initial={{
+                  id: entity.id,
+                  type: entity.type,
+                  value: entity.value,
+                  source: entity.source,
+                }}
+              />
+              <DeleteEntityButton
+                entityId={entity.id}
+                entityValue={entity.value}
+                placement="header"
+                redirectTo={`/cases/${caseIdNum}`}
+              />
+            </>
+          )}
+        </div>
       </div>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">

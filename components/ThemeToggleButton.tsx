@@ -3,8 +3,8 @@
 import { useSyncExternalStore } from "react";
 import { readTheme, setTheme, subscribeTheme, type Theme } from "@/lib/theme";
 
-export function ThemeSwitch() {
-  // null until hydration, so the switch can never contradict the rendered page.
+/** A standalone icon toggle for pages with no account menu to tuck it into — guest-facing pages. */
+export function ThemeToggleButton() {
   const theme = useSyncExternalStore<Theme | null>(subscribeTheme, readTheme, () => null);
   const isDark = theme === "dark";
 
@@ -15,15 +15,12 @@ export function ThemeSwitch() {
   return (
     <button
       type="button"
-      role="switch"
-      aria-checked={isDark}
       onClick={toggle}
-      className="menu-item menu-item-row"
+      className="btn btn-ghost btn-sm px-2"
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
-      <span>Dark mode</span>
-      <span className="switch" data-on={isDark} aria-hidden="true">
-        <span className="switch-knob" />
-      </span>
+      {isDark ? "☀" : "☾"}
     </button>
   );
 }

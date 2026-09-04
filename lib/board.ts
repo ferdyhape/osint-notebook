@@ -51,6 +51,7 @@ export async function fetchCaseBoardData(caseId: number) {
       name: true,
       description: true,
       status: true,
+      owner: { select: { name: true, email: true } },
       entities: {
         select: {
           id: true,
@@ -98,6 +99,7 @@ export async function fetchCaseBoardData(caseId: number) {
     name: found.name,
     description: found.description,
     status: found.status,
+    owner: found.owner,
     entities,
     relationships,
     notes,

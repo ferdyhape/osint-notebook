@@ -68,7 +68,7 @@ export default async function CaseDetailPage({
             <p className="text-sm text-muted mt-1.5 max-w-xl">{found.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 flex-wrap">
           <CaseViewTabs detailHref={`/cases/${id}`} boardHref={`/cases/${id}/board`} active="detail" />
           <ExportMenu caseId={id} />
           {isOwner && <ShareButton caseId={id} />}

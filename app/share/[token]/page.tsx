@@ -4,6 +4,7 @@ import { fetchCaseBoardData, entitiesToNodes, relationshipsToEdges, computeForce
 import { InvestigationBoard } from "@/components/board/InvestigationBoard";
 import { CaseViewTabs } from "@/components/board/CaseViewTabs";
 import { InvalidShareLink } from "@/components/InvalidShareLink";
+import { ExportMenu } from "@/components/ExportMenu";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +29,14 @@ export default async function SharedBoardPage({ params }: { params: Promise<{ to
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="page-title">{data.name}</h1>
-          <p className="text-sm text-muted mt-1">Shared read-only · Investigation board</p>
+          <p className="text-sm text-muted mt-1">
+            Shared read-only · Investigation board · by {data.owner.name || data.owner.email}
+          </p>
         </div>
-        <CaseViewTabs detailHref={`/share/${token}/detail`} boardHref={`/share/${token}`} active="board" />
+        <div className="flex items-center gap-2 flex-wrap">
+          <CaseViewTabs detailHref={`/share/${token}/detail`} boardHref={`/share/${token}`} active="board" />
+          <ExportMenu caseId={caseId} exportBase={`/api/share/${token}`} />
+        </div>
       </div>
 
       <InvestigationBoard

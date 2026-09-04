@@ -70,7 +70,7 @@ export async function POST(request: NextRequest, { params }: Params) {
           caseId: id,
           entityId: created.id,
           content: source
-            ? `Found by pivoting from the ${source.type} ${source.value}.`
+            ? `Found by pivoting from "${source.value}" (${source.type}).`
             : "Found by pivoting from a related entity.",
         },
       });

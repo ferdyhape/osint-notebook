@@ -33,10 +33,12 @@ export default async function SharedDetailPage({ params }: { params: Promise<{ t
               {active ? "Active" : "Closed"}
             </span>
           </div>
-          <p className="text-sm text-muted mt-1.5">Shared read-only</p>
+          <p className="text-sm text-muted mt-1.5">
+            Shared read-only · by {data.owner.name || data.owner.email}
+          </p>
           {data.description && <p className="text-sm text-muted mt-1.5 max-w-xl">{data.description}</p>}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 flex-wrap">
           <CaseViewTabs detailHref={`/share/${token}/detail`} boardHref={`/share/${token}`} active="detail" />
           <ExportMenu caseId={caseId} exportBase={`/api/share/${token}`} />
         </div>
@@ -44,7 +46,7 @@ export default async function SharedDetailPage({ params }: { params: Promise<{ t
 
       <section className="space-y-3">
         <h2 className="section-title">
-          Entities <span className="font-data text-xs text-muted font-normal">{data.entities.length}</span>
+          Entities <span className="text-xs text-muted font-normal">{data.entities.length}</span>
         </h2>
         <EntityTable
           caseId={caseId}
@@ -63,7 +65,7 @@ export default async function SharedDetailPage({ params }: { params: Promise<{ t
 
       <section className="space-y-3">
         <h2 className="section-title">
-          Notes <span className="font-data text-xs text-muted font-normal">{data.notes.length}</span>
+          Notes <span className="text-xs text-muted font-normal">{data.notes.length}</span>
         </h2>
         <NoteTimeline
           readOnly

@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { PivotRule } from "@prisma/client";
-import { resolvePivotSuggestion, type CombineOperator } from "@/lib/pivot";
+import { resolvePivotSuggestion, isUrlValue, type CombineOperator } from "@/lib/pivot";
 import { EntityFormModal } from "@/components/EntityFormModal";
 import { DeleteEntityButton } from "@/components/DeleteEntityButton";
+import { CopyButton } from "@/components/CopyButton";
 
 type EntityRow = {
   id: number;
@@ -118,31 +119,48 @@ export function EntityTable({
                   <span className="badge">{e.type}</span>
                 </td>
                 <td className="px-4 py-2.5">
-                  {linkToDetail ? (
-                    <Link
-                      href={`/cases/${caseId}/entities/${e.id}`}
-                      className="font-data text-[0.8125rem] font-medium hover:text-accent"
-                    >
-                      {e.value}
-                    </Link>
-                  ) : (
-                    <span className="font-data text-[0.8125rem] font-medium">{e.value}</span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {linkToDetail ? (
+                      <Link
+                        href={`/cases/${caseId}/entities/${e.id}`}
+                        className="font-data text-[0.8125rem] font-medium hover:text-accent truncate"
+                      >
+                        {e.value}
+                      </Link>
+                    ) : (
+                      <span className="font-data text-[0.8125rem] font-medium truncate">{e.value}</span>
+                    )}
+                    {isUrlValue(e.value) && (
+                      <a
+                        href={e.value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted hover:text-accent shrink-0"
+                        title="Open link"
+                        aria-label="Open link"
+                      >
+                        ↗
+                      </a>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-2.5 text-muted">{e.source || "—"}</td>
                 <td className="px-4 py-2.5 text-muted text-xs whitespace-nowrap">
                   {new Date(e.createdAt).toLocaleDateString("en-GB")}
                 </td>
                 <td className="px-3 py-2.5">
-                  {!readOnly && (
-                    <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                      <EntityFormModal
-                        caseId={caseId}
-                        initial={{ id: e.id, type: e.type, value: e.value, source: e.source }}
-                      />
-                      <DeleteEntityButton entityId={e.id} entityValue={e.value} />
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    <CopyButton value={e.value} className="btn btn-row" />
+                    {!readOnly && (
+                      <>
+                        <EntityFormModal
+                          caseId={caseId}
+                          initial={{ id: e.id, type: e.type, value: e.value, source: e.source }}
+                        />
+                        <DeleteEntityButton entityId={e.id} entityValue={e.value} />
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
