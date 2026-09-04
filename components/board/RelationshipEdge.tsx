@@ -35,11 +35,13 @@ export function RelationshipEdge({
       {label ? (
         <EdgeLabelRenderer>
           <div
-            className="badge font-data text-[0.6875rem]"
+            className="card px-2 py-1 text-xs font-medium leading-none whitespace-nowrap"
             style={{
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               pointerEvents: "none",
+              color: selected ? "var(--color-accent)" : "var(--color-text)",
+              borderColor: selected ? "var(--color-accent)" : "var(--color-border)",
             }}
           >
             {label}

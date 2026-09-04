@@ -39,6 +39,11 @@ export function ConfirmDialog({
       onCancel={(e) => {
         if (busy) e.preventDefault();
       }}
+      onClick={(e) => {
+        if (busy) return;
+        // A click that lands on the <dialog> element itself (not a child) hit the backdrop.
+        if (e.target === dialogRef.current) dialogRef.current?.close();
+      }}
       className="card w-[26rem] max-w-[calc(100vw-2rem)] p-0"
     >
       <div className="p-5 space-y-3">

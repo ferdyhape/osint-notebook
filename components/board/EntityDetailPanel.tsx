@@ -41,7 +41,7 @@ export function EntityDetailPanel({
       )}
 
       <div className="space-y-2">
-        <h3 className="section-title text-sm">Suggested next steps</h3>
+        <h3 className="item-title">Suggested next steps</h3>
         <PivotSuggestionsPanel caseId={caseId} entityId={entityId} readOnly={readOnly} fetchUrl={pivotFetchUrl} />
       </div>
     </aside>

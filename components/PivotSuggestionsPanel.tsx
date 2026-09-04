@@ -77,9 +77,7 @@ export function PivotSuggestionsPanel({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="item-title">{s.title}</p>
-                <span className="font-data text-[0.6875rem] text-muted uppercase">
-                  {s.category}
-                </span>
+                <span className="eyebrow">{s.category}</span>
               </div>
               <p className="text-sm text-muted mt-0.5">{s.description}</p>
             </div>

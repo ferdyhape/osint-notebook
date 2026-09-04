@@ -144,7 +144,7 @@ export function ShareModal({ caseId, open, onClose }: { caseId: number; open: bo
 
   return (
     <>
-      <Modal open={open} onClose={onClose} title="Share this case">
+      <Modal open={open} onClose={onClose} title="Share this case" width="wide">
         {loading ? (
           <p className="text-sm text-muted">Loading…</p>
         ) : (
@@ -158,17 +158,21 @@ export function ShareModal({ caseId, open, onClose }: { caseId: number; open: bo
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="field font-data flex-1"
+                  className="field font-data min-w-0 flex-1"
                 />
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as "viewer" | "editor")}
-                  className="field w-auto"
+                  className="field w-auto shrink-0"
                 >
                   <option value="viewer">Viewer</option>
                   <option value="editor">Editor</option>
                 </select>
-                <button type="submit" disabled={inviting} className="btn btn-primary disabled:opacity-50">
+                <button
+                  type="submit"
+                  disabled={inviting}
+                  className="btn btn-primary shrink-0 disabled:opacity-50"
+                >
                   {inviting ? "Sending…" : "Invite"}
                 </button>
               </div>
@@ -179,15 +183,17 @@ export function ShareModal({ caseId, open, onClose }: { caseId: number; open: bo
             {shares.length > 0 && (
               <div className="space-y-2">
                 <label className="label">People with access</label>
-                <ul className="space-y-1.5">
+                <ul className="card divide-y divide-border">
                   {shares.map((s) => (
-                    <li key={s.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="font-data truncate">{s.user?.email || s.invitedEmail}</span>
+                    <li key={s.id} className="flex items-center justify-between gap-3 p-2.5">
+                      <span className="font-data text-sm min-w-0 flex-1 truncate">
+                        {s.user?.email || s.invitedEmail}
+                      </span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <select
                           value={s.role}
                           onChange={(e) => changeRole(s.id, e.target.value)}
-                          className="field w-auto py-1 text-xs"
+                          className="field w-auto"
                         >
                           <option value="viewer">Viewer</option>
                           <option value="editor">Editor</option>
@@ -202,10 +208,17 @@ export function ShareModal({ caseId, open, onClose }: { caseId: number; open: bo
               </div>
             )}
 
-            <div className="space-y-2 pt-2 border-t border-border">
-              <div className="flex items-center justify-between">
-                <label className="label">Anyone with the link</label>
-                <button onClick={toggleLink} disabled={linkBusy} className="btn btn-sm disabled:opacity-50">
+            <div className="space-y-2.5 pt-3 border-t border-border">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Anyone with the link</p>
+                  <p className="text-xs text-muted mt-0.5">Read-only. No account needed.</p>
+                </div>
+                <button
+                  onClick={toggleLink}
+                  disabled={linkBusy}
+                  className="btn btn-sm shrink-0 disabled:opacity-50"
+                >
                   {link ? "Turn off" : "Turn on"}
                 </button>
               </div>
@@ -214,20 +227,17 @@ export function ShareModal({ caseId, open, onClose }: { caseId: number; open: bo
                   <input
                     readOnly
                     value={`${typeof window !== "undefined" ? window.location.origin : ""}/share/${link.linkToken}`}
-                    className="field font-data text-xs flex-1"
+                    className="field font-data text-xs min-w-0 flex-1"
                     onFocus={(e) => e.target.select()}
                   />
-                  <button onClick={copyLink} className="btn btn-sm">
+                  <button onClick={copyLink} className="btn btn-sm shrink-0">
                     {copied ? "Copied" : "Copy"}
                   </button>
-                  <button onClick={regenerateLink} disabled={linkBusy} className="btn btn-sm">
+                  <button onClick={regenerateLink} disabled={linkBusy} className="btn btn-sm shrink-0">
                     Regenerate
                   </button>
                 </div>
               )}
-              <p className="text-xs text-muted">
-                Anyone with this link can view the case read-only — no account needed.
-              </p>
             </div>
           </div>
         )}

@@ -21,15 +21,9 @@ export function BoardSelectionToolbar({
     <div className="card bg-accent-soft px-4 py-3 absolute bottom-3 left-3 right-3 z-10 flex items-center gap-3 flex-wrap">
       <span className="text-xs font-medium">{selectedValues.length} selected</span>
 
-      <div className="flex rounded-md border border-border overflow-hidden">
+      <div className="seg">
         {(["AND", "OR"] as const).map((op) => (
-          <button
-            key={op}
-            onClick={() => setOperator(op)}
-            className={`font-data text-xs px-2.5 py-1 transition-colors ${
-              operator === op ? "bg-accent text-on-accent" : "bg-surface text-muted hover:text-text"
-            }`}
-          >
+          <button key={op} onClick={() => setOperator(op)} className="seg-btn" data-active={operator === op}>
             {op}
           </button>
         ))}

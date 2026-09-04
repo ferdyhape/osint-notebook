@@ -3,45 +3,56 @@ import type { EntityNodeData } from "@/lib/board";
 
 type EntityNode = Node<EntityNodeData, "entity">;
 
-const TYPE_GLYPH: Record<string, string> = {
-  email: "@",
-  username: "u/",
-  domain: "◈",
-  ip: "ip",
-  phone: "☎",
-  person: "☺",
-  organization: "▣",
-  address: "⌂",
-  image: "▧",
-};
+const CHIP_COUNT = 6;
+
+/** Deterministic per-type color so the same type always reads the same way, including custom types the user typed in. */
+function chipIndex(type: string) {
+  let hash = 0;
+  for (let i = 0; i < type.length; i++) hash = (hash * 31 + type.charCodeAt(i)) >>> 0;
+  return (hash % CHIP_COUNT) + 1;
+}
 
 export function EntityNode({ data, selected }: NodeProps<EntityNode>) {
+  const chip = chipIndex(data.type);
+
   return (
     <div
-      className={`card px-3 py-2.5 rounded-[10px] min-w-[9rem] max-w-[14rem] transition-colors ${
-        selected ? "border-accent bg-accent-soft" : "hover:border-text/40"
+      className={`group card px-3.5 py-3 min-w-[13rem] max-w-[17rem] transition-shadow ${
+        selected ? "border-accent shadow-[0_0_0_2px_var(--color-accent)]" : "hover:border-text/30"
       }`}
     >
-      <Handle type="target" position={Position.Top} className="!bg-border !border-border !w-2 !h-2" />
-      <Handle type="source" position={Position.Bottom} className="!bg-border !border-border !w-2 !h-2" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!w-2 !h-2 !bg-surface !border !border-border transition-transform group-hover:scale-125"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!w-2 !h-2 !bg-surface !border !border-border transition-transform group-hover:scale-125"
+      />
 
-      <div className="flex items-center gap-1.5 min-w-0">
-        <span
-          className={`font-data text-[0.6875rem] shrink-0 ${selected ? "text-accent" : "text-muted"}`}
+      <div className="flex items-start gap-2.5">
+        <div
+          className="flex items-center justify-center shrink-0 w-8 h-8 rounded-[8px] font-data text-[0.6875rem] font-semibold"
+          style={{ background: `var(--chip-${chip}-bg)`, color: `var(--chip-${chip}-fg)` }}
           aria-hidden
         >
-          {TYPE_GLYPH[data.type] ?? "•"}
-        </span>
-        <span className="badge shrink-0">{data.type}</span>
+          {data.type.slice(0, 2).toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="eyebrow leading-none">{data.type}</p>
+          <p className="font-data text-[0.8125rem] font-semibold mt-1 truncate" title={data.value}>
+            {data.value}
+          </p>
+          {data.source && <p className="text-xs text-muted mt-0.5 truncate">{data.source}</p>}
+        </div>
       </div>
-      <p className="font-data text-[0.8125rem] font-medium mt-1.5 truncate" title={data.value}>
-        {data.value}
-      </p>
-      {data.source && <p className="text-xs text-muted mt-0.5 truncate">{data.source}</p>}
+
       {data.noteCount > 0 && (
-        <span className="badge mt-1.5 inline-block">
+        <div className="mt-2.5 pt-2 border-t border-border text-xs text-muted">
           {data.noteCount} {data.noteCount === 1 ? "note" : "notes"}
-        </span>
+        </div>
       )}
     </div>
   );

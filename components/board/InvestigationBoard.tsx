@@ -146,65 +146,73 @@ function BoardInner({ caseId, initialNodes, initialEdges, combinableRules, readO
   }
 
   return (
-    <div className="relative h-[70vh] card overflow-hidden">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        onNodesChange={readOnly ? undefined : onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeClick={onNodeClick}
-        onNodeDragStop={onNodeDragStop}
-        onConnect={onConnect}
-        onSelectionChange={onSelectionChange}
-        nodesDraggable={!readOnly}
-        nodesConnectable={!readOnly}
-        elementsSelectable
-        deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]}
-        fitView
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background gap={20} size={1} color="var(--color-border)" />
-        <Controls showInteractive={false} />
-        <MiniMap
-          pannable
-          zoomable
-          maskColor="rgba(0,0,0,0.06)"
-          style={{ background: "var(--color-surface)" }}
-        />
-      </ReactFlow>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted">
+          {nodes.length} {nodes.length === 1 ? "entity" : "entities"} · {edges.length}{" "}
+          {edges.length === 1 ? "relationship" : "relationships"}
+        </p>
+        {!readOnly && (
+          <button onClick={() => setConfirmReset(true)} className="btn btn-sm">
+            Re-arrange
+          </button>
+        )}
+      </div>
 
-      {!readOnly && (
-        <button
-          onClick={() => setConfirmReset(true)}
-          className="btn btn-sm absolute top-3 right-3 z-10"
+      <div className="relative h-[70vh] card overflow-hidden">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          onNodesChange={readOnly ? undefined : onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeClick={onNodeClick}
+          onNodeDragStop={onNodeDragStop}
+          onConnect={onConnect}
+          onSelectionChange={onSelectionChange}
+          nodesDraggable={!readOnly}
+          nodesConnectable={!readOnly}
+          elementsSelectable
+          deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]}
+          defaultEdgeOptions={{ type: "relationship" }}
+          fitView
+          fitViewOptions={{ padding: 0.3 }}
+          proOptions={{ hideAttribution: true }}
         >
-          Re-arrange
-        </button>
-      )}
+          <Background gap={24} size={1} color="var(--color-border)" />
+          <Controls showInteractive={false} position="bottom-left" />
+          <MiniMap
+            pannable
+            zoomable
+            position="bottom-right"
+            maskColor="rgba(0,0,0,0.06)"
+            style={{ background: "var(--color-surface)" }}
+          />
+        </ReactFlow>
 
-      {selectedNode && (
-        <EntityDetailPanel
-          caseId={caseId}
-          entityId={Number(selectedNode.id)}
-          data={selectedNode.data}
-          readOnly={readOnly}
-          detailHref={shareToken ? undefined : `/cases/${caseId}/entities/${selectedNode.id}`}
-          pivotFetchUrl={
-            shareToken ? `/api/share/${shareToken}/entities/${selectedNode.id}/pivot-suggestions` : undefined
-          }
-          onClose={closePanel}
-        />
-      )}
+        {selectedNode && (
+          <EntityDetailPanel
+            caseId={caseId}
+            entityId={Number(selectedNode.id)}
+            data={selectedNode.data}
+            readOnly={readOnly}
+            detailHref={shareToken ? undefined : `/cases/${caseId}/entities/${selectedNode.id}`}
+            pivotFetchUrl={
+              shareToken ? `/api/share/${shareToken}/entities/${selectedNode.id}/pivot-suggestions` : undefined
+            }
+            onClose={closePanel}
+          />
+        )}
 
-      {!readOnly && (
-        <BoardSelectionToolbar
-          selectedValues={selectedValues}
-          combinableRules={combinableRules}
-          onClear={closePanel}
-        />
-      )}
+        {!readOnly && (
+          <BoardSelectionToolbar
+            selectedValues={selectedValues}
+            combinableRules={combinableRules}
+            onClear={closePanel}
+          />
+        )}
+      </div>
 
       <Modal
         open={pendingConnection !== null}

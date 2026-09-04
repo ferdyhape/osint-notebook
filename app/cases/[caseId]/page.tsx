@@ -93,9 +93,7 @@ export default async function CaseDetailPage({
         <div className="flex items-center justify-between gap-3">
           <h2 className="section-title">
             Entities{" "}
-            <span className="font-data text-xs text-muted font-normal">
-              {found.entities.length}
-            </span>
+            <span className="text-xs text-muted font-normal">{found.entities.length}</span>
           </h2>
           {canEdit && <EntityFormModal caseId={id} />}
         </div>

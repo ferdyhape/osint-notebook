@@ -42,7 +42,7 @@ export default async function DashboardPage() {
         <div>
           <h1 className="page-title">Cases</h1>
           {myCases.length > 0 && (
-            <p className="font-data text-xs text-muted mt-1.5">
+            <p className="text-xs text-muted mt-1.5">
               {activeCount} active · {myCases.length} total · {totalEntities} entities
             </p>
           )}

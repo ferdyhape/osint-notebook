@@ -60,11 +60,18 @@ export async function POST(request: NextRequest, { params }: Params) {
         },
       });
 
+      const source = await tx.entity.findUnique({
+        where: { id: Number(relatedToEntityId) },
+        select: { type: true, value: true },
+      });
+
       await tx.note.create({
         data: {
           caseId: id,
           entityId: created.id,
-          content: `Found by pivoting from entity #${relatedToEntityId}.`,
+          content: source
+            ? `Found by pivoting from the ${source.type} ${source.value}.`
+            : "Found by pivoting from a related entity.",
         },
       });
     }

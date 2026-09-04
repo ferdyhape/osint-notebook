@@ -19,8 +19,24 @@
 
   --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
 
-  --font-display: var(--font-archivo);
-  --font-body: var(--font-plex-sans);
+  /* Entity-type chips on the investigation board — a fixed, deterministic
+     rotation (see chipIndex in EntityNode.tsx) so the same type always reads
+     the same color, including types the user typed in themselves. */
+  --chip-1-bg: #e0edff;
+  --chip-1-fg: #1d4ed8;
+  --chip-2-bg: #f1e8ff;
+  --chip-2-fg: #7c3aed;
+  --chip-3-bg: #cffafe;
+  --chip-3-fg: #0e7490;
+  --chip-4-bg: #fef3c7;
+  --chip-4-fg: #b45309;
+  --chip-5-bg: #ffe4e6;
+  --chip-5-fg: #be123c;
+  --chip-6-bg: #e0e7ff;
+  --chip-6-fg: #4338ca;
+
+  --font-display: var(--font-inter);
+  --font-body: var(--font-inter);
   --font-data: var(--font-plex-mono);
 }
 
@@ -66,6 +82,19 @@ html {
   --color-on-accent: #04161c;
   --color-on-danger: #2b0f0c;
   --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+  --chip-1-bg: rgba(59, 130, 246, 0.16);
+  --chip-1-fg: #93c5fd;
+  --chip-2-bg: rgba(167, 139, 250, 0.16);
+  --chip-2-fg: #c4b5fd;
+  --chip-3-bg: rgba(34, 211, 238, 0.16);
+  --chip-3-fg: #67e8f9;
+  --chip-4-bg: rgba(245, 158, 11, 0.16);
+  --chip-4-fg: #fcd34d;
+  --chip-5-bg: rgba(244, 63, 94, 0.16);
+  --chip-5-fg: #fda4af;
+  --chip-6-bg: rgba(99, 102, 241, 0.18);
+  --chip-6-fg: #a5b4fc;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -84,6 +113,19 @@ html {
     --color-on-accent: #04161c;
     --color-on-danger: #2b0f0c;
     --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+    --chip-1-bg: rgba(59, 130, 246, 0.16);
+    --chip-1-fg: #93c5fd;
+    --chip-2-bg: rgba(167, 139, 250, 0.16);
+    --chip-2-fg: #c4b5fd;
+    --chip-3-bg: rgba(34, 211, 238, 0.16);
+    --chip-3-fg: #67e8f9;
+    --chip-4-bg: rgba(245, 158, 11, 0.16);
+    --chip-4-fg: #fcd34d;
+    --chip-5-bg: rgba(244, 63, 94, 0.16);
+    --chip-5-fg: #fda4af;
+    --chip-6-bg: rgba(99, 102, 241, 0.18);
+    --chip-6-fg: #a5b4fc;
   }
 }
 
@@ -115,6 +157,13 @@ dialog::backdrop {
   color: var(--color-text);
 }
 
+/* Every reusable component class lives in this layer, one step below
+   Tailwind's own `utilities` layer — so a utility class placed alongside one
+   of these in JSX (e.g. `className="field w-auto"`) always wins, the same
+   way it would if these were plain Tailwind components. Without this layer,
+   these classes are unlayered and beat utilities unconditionally regardless
+   of source order, which silently breaks any attempt to override them. */
+@layer components {
 
 /* --- Spacing conventions ---
    Kept as utility classes rather than components, so these are the values to
@@ -136,30 +185,46 @@ dialog::backdrop {
      card grid           gap-4          two-column layout: gap-8 */
 
 /* --- Type scale ---
-   Archivo (display) for titles, Plex Sans for prose/controls, Plex Mono for data. */
+   One family (Inter) for display and body, Plex Mono for data — three
+   confident steps down from H1, each a real weight change, not just size:
+
+     H1  .page-title        800  2rem      page headings, one per page
+     H2  .section-title     700  1.25rem   named sections within a page
+     H3  .item-title        600  0.9375rem card/list-item headings, panel sub-heads
+     —   .eyebrow           500  0.6875rem uppercase category/status labels (mono) */
 
 .page-title {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.75rem;
-  line-height: 1.2;
+  font-size: 2rem;
+  line-height: 1.15;
   letter-spacing: -0.02em;
 }
 
 .section-title {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.0625rem;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  letter-spacing: -0.012em;
 }
 
 .item-title {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 0.9375rem;
   line-height: 1.4;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.006em;
+}
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 /* --- Surfaces --- */
@@ -185,11 +250,14 @@ dialog::backdrop {
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text);
-  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease, transform 120ms ease;
+  box-shadow: var(--card-shadow);
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease, transform 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .btn:hover {
-  border-color: var(--color-text);
+  border-color: color-mix(in srgb, var(--color-text) 25%, var(--color-border));
+  background: var(--color-surface-subtle);
 }
 
 /* The only smaller size. Anything that needs to be more compact than .btn uses
@@ -201,12 +269,15 @@ dialog::backdrop {
 
 .btn:active {
   transform: translateY(1px);
+  box-shadow: none;
 }
 
 .btn-primary {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: var(--color-on-accent);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-accent) 40%, transparent),
+    0 1px 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 
 .btn-primary:hover {
@@ -221,6 +292,7 @@ dialog::backdrop {
   color: var(--color-muted);
   padding-left: 0;
   padding-right: 0;
+  box-shadow: none;
 }
 
 /* Compact action buttons used inside table rows and cards. */
@@ -230,6 +302,7 @@ dialog::backdrop {
   border-color: transparent;
   background: transparent;
   color: var(--color-muted);
+  box-shadow: none;
 }
 
 .btn-row:hover {
@@ -254,6 +327,7 @@ dialog::backdrop {
   color: var(--color-danger);
   border-color: color-mix(in srgb, var(--color-danger) 40%, transparent);
   background: transparent;
+  box-shadow: none;
 }
 
 .btn-danger:hover {
@@ -266,12 +340,51 @@ dialog::backdrop {
   background: var(--color-danger);
   border-color: var(--color-danger);
   color: var(--color-on-danger);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-danger) 40%, transparent),
+    0 1px 3px color-mix(in srgb, var(--color-danger) 20%, transparent);
 }
 
 .btn-danger-solid:hover {
   background: color-mix(in srgb, var(--color-danger) 85%, black);
   border-color: color-mix(in srgb, var(--color-danger) 85%, black);
   color: var(--color-on-danger);
+}
+
+/* Segmented control — a group of mutually-exclusive options (view switchers,
+   AND/OR combine mode). One shared component so every toggle group in the
+   app looks like it belongs to the same design system as .btn. */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.seg-btn {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  color: var(--color-muted);
+  background: transparent;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.seg-btn:not(:last-child) {
+  border-right: 1px solid var(--color-border);
+}
+
+.seg-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-subtle);
+}
+
+.seg-btn[data-active="true"] {
+  color: var(--color-on-accent);
+  background: var(--color-accent);
 }
 
 /* --- Fields --- */
@@ -291,6 +404,7 @@ dialog::backdrop {
 .field:focus {
   outline: none;
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
 
 .field::placeholder {
@@ -310,7 +424,8 @@ dialog::backdrop {
 .badge {
   display: inline-flex;
   align-items: center;
-  font-family: var(--font-data);
+  font-family: var(--font-body);
+  font-weight: 500;
   font-size: 0.6875rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -319,6 +434,12 @@ dialog::backdrop {
   border: 1px solid var(--color-border);
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
+}
+
+.badge-accent {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border-color: transparent;
 }
 
 .dot {
@@ -459,6 +580,8 @@ dialog::backdrop {
   padding: 0.2rem 0.6rem;
 }
 
+} /* /components */
+
 /* --- Entrance --- */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -512,4 +635,23 @@ dialog::backdrop {
   --xy-connectionline-stroke-default: var(--color-accent);
   --xy-selection-background-color-default: var(--color-accent-soft);
   --xy-selection-border-default: 1px dotted var(--color-accent);
+}
+
+/* Give the library's own chrome the same card language as the rest of the
+   app (rounded, hairline border) instead of its default hard-edged panels. */
+.react-flow__controls {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.react-flow__controls-button {
+  width: 32px;
+  height: 32px;
+}
+
+.react-flow__minimap {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
 }
