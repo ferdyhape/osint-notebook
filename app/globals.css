@@ -364,11 +364,15 @@ dialog::backdrop {
   flex-shrink: 0;
 }
 
+/* Sized to match .btn-sm exactly — every button this sits next to in a header
+   row (Export, Share, Fullscreen, Re-arrange) uses that size, not the larger .btn. */
 .seg-btn {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--font-body);
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.4rem 0.75rem;
+  padding: 0.3rem 0.6rem;
   color: var(--color-muted);
   background: transparent;
   white-space: nowrap;
@@ -584,6 +588,17 @@ dialog::backdrop {
 
 } /* /components */
 
+/* Scrollable but without a visible scrollbar track — the board's entity
+   detail panel behaves like a floating popover, not a page region. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* --- Entrance --- */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -656,6 +671,36 @@ dialog::backdrop {
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--color-border);
+}
+
+@media (max-width: 640px) {
+  .react-flow__minimap {
+    width: 96px;
+    height: 72px;
+  }
+}
+
+/* The reconnect hit-target at each edge's endpoint is invisible by default —
+   give it a visible ring on hover so dragging a connection to a different
+   entity is discoverable, not something you have to already know is there. */
+.react-flow__edge:hover .react-flow__edgeupdater {
+  fill: var(--color-accent);
+  fill-opacity: 0.18;
+  stroke: var(--color-accent);
+  stroke-width: 1.5px;
+}
+
+/* Drag this to bend a relationship line's curve manually — e.g. to route it
+   around an entity it would otherwise overlap. Hidden until the edge is
+   hovered/selected/actively dragged so it doesn't clutter a calm board. */
+.edge-bend-handle {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.react-flow__edge:hover .edge-bend-handle,
+.edge-bend-handle[data-active="true"] {
+  opacity: 1;
 }
 
 /* The board's fixed h-[70vh] only fits its normal spot in the page; in the

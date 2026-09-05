@@ -76,7 +76,9 @@ function BoardInner({ caseId, initialNodes, initialEdges, combinableRules, readO
   const { fitView } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges] = useEdgesState(initialEdges);
+  const [edges, setEdges] = useEdgesState<Edge>(
+    initialEdges.map((e): Edge => ({ ...e, data: { ...e.data, readOnly } }))
+  );
   // Which node's detail panel is open — set only by an actual click, never by
   // a drag (React Flow tells those apart itself; onNodeClick doesn't fire for
   // a drag). Kept separate from React Flow's own multi-select below, which
@@ -150,6 +152,13 @@ function BoardInner({ caseId, initialNodes, initialEdges, combinableRules, readO
     setActiveNodeId(node.id);
   }, []);
 
+  // Clicking empty canvas closes the panel, like clicking outside a modal —
+  // clicking a different node instead switches the panel to that entity,
+  // handled entirely by onNodeClick above since a node click never reaches the pane.
+  const onPaneClick = useCallback(() => {
+    setActiveNodeId(null);
+  }, []);
+
   const onNodeDragStop: OnNodeDrag<Node<EntityNodeData>> = useCallback(
     (_event, node) => {
       if (readOnly) return;
@@ -189,7 +198,14 @@ function BoardInner({ caseId, initialNodes, initialEdges, combinableRules, readO
       const created = await res.json();
       setEdges((eds) =>
         addEdge(
-          { id: String(created.id), type: "relationship", source: created.entityAId + "", target: created.entityBId + "", label: created.relationType },
+          {
+            id: String(created.id),
+            type: "relationship",
+            source: created.entityAId + "",
+            target: created.entityBId + "",
+            label: created.relationType,
+            data: { bendOffset: 0, readOnly },
+          },
           eds
         )
       );
@@ -297,6 +313,7 @@ function BoardInner({ caseId, initialNodes, initialEdges, combinableRules, readO
           onNodesChange={readOnly ? undefined : onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
+          onPaneClick={onPaneClick}
           onNodeDragStop={onNodeDragStop}
           onConnect={onConnect}
           onReconnect={onReconnect}
@@ -329,9 +346,7 @@ function BoardInner({ caseId, initialNodes, initialEdges, combinableRules, readO
             data={activeNode.data}
             readOnly={readOnly}
             detailHref={shareToken ? undefined : `/cases/${caseId}/entities/${activeNode.id}`}
-            pivotFetchUrl={
-              shareToken ? `/api/share/${shareToken}/entities/${activeNode.id}/pivot-suggestions` : undefined
-            }
+            showSuggestions={!shareToken}
             onClose={closeDetailPanel}
           />
         )}

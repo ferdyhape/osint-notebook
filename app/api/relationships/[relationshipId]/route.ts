@@ -16,7 +16,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!access.ok) return access.response;
 
   const body = await request.json();
-  const { entityAId, entityBId, relationType } = body;
+  const { entityAId, entityBId, relationType, bendOffset } = body;
 
   if (entityAId !== undefined && entityBId !== undefined && Number(entityAId) === Number(entityBId)) {
     return NextResponse.json({ error: "Two distinct entities are required" }, { status: 400 });
@@ -35,6 +35,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       ...(entityAId !== undefined && { entityAId: Number(entityAId) }),
       ...(entityBId !== undefined && { entityBId: Number(entityBId) }),
       ...(relationType !== undefined && { relationType }),
+      ...(bendOffset !== undefined && { bendOffset: Number(bendOffset) }),
     },
   });
   return NextResponse.json(updated);

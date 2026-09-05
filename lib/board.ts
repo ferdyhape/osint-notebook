@@ -26,6 +26,7 @@ export type BoardRelationship = {
   relationType: string;
   entityAId: number;
   entityBId: number;
+  bendOffset: number;
 };
 
 export type BoardNote = {
@@ -66,7 +67,7 @@ export async function fetchCaseBoardData(caseId: number) {
         orderBy: { createdAt: "asc" },
       },
       relationships: {
-        select: { id: true, relationType: true, entityAId: true, entityBId: true },
+        select: { id: true, relationType: true, entityAId: true, entityBId: true, bendOffset: true },
       },
       notes: {
         orderBy: { createdAt: "desc" },
@@ -157,5 +158,6 @@ export function relationshipsToEdges(relationships: BoardRelationship[]): Edge[]
     source: String(r.entityAId),
     target: String(r.entityBId),
     label: r.relationType,
+    data: { bendOffset: r.bendOffset },
   }));
 }

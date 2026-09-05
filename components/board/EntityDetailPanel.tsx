@@ -10,7 +10,9 @@ type Props = {
   data: EntityNodeData;
   readOnly: boolean;
   detailHref?: string;
-  pivotFetchUrl?: string;
+  /** False on the anonymous share view — pivot suggestions are an investigation action and
+   *  require a signed-in session, so a guest gets entity info only, no "next steps" pane. */
+  showSuggestions?: boolean;
   onClose: () => void;
 };
 
@@ -20,11 +22,11 @@ export function EntityDetailPanel({
   data,
   readOnly,
   detailHref,
-  pivotFetchUrl,
+  showSuggestions = true,
   onClose,
 }: Props) {
   return (
-    <aside className="card absolute top-3 right-3 bottom-3 w-[22rem] max-w-[calc(100vw-1.5rem)] overflow-y-auto p-4 space-y-4 z-10">
+    <aside className="no-scrollbar card absolute top-3 right-3 bottom-3 w-[22rem] max-w-[calc(100vw-1.5rem)] overflow-y-auto p-4 space-y-4 z-10">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <span className="badge">{data.type}</span>
@@ -58,10 +60,16 @@ export function EntityDetailPanel({
         )}
       </div>
 
-      <div className="space-y-2">
-        <h3 className="item-title">Suggested next steps</h3>
-        <PivotSuggestionsPanel caseId={caseId} entityId={entityId} readOnly={readOnly} fetchUrl={pivotFetchUrl} />
-      </div>
+      {showSuggestions ? (
+        <div className="space-y-2">
+          <h3 className="item-title">Suggested next steps</h3>
+          <PivotSuggestionsPanel caseId={caseId} entityId={entityId} readOnly={readOnly} />
+        </div>
+      ) : (
+        <p className="text-xs text-muted border-t border-border pt-3">
+          Sign in to see investigation suggestions for this entity.
+        </p>
+      )}
     </aside>
   );
 }
