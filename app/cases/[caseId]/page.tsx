@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -16,6 +17,25 @@ import { ShareButton } from "@/components/ShareButton";
 import { CaseViewTabs } from "@/components/board/CaseViewTabs";
 
 export const dynamic = "force-dynamic";
+
+/** A case name *is* the investigation's subject, so it must never reach a search
+ *  result — the title is here for the browser tab and the member's history only. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ caseId: string }>;
+}): Promise<Metadata> {
+  const { caseId } = await params;
+  const found = await prisma.case.findUnique({
+    where: { id: Number(caseId) },
+    select: { name: true },
+  });
+  return {
+    title: found ? found.name : "Case",
+    robots: { index: false, follow: false },
+  };
+}
+
 
 export default async function CaseDetailPage({
   params,

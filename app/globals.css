@@ -628,6 +628,11 @@ dialog::backdrop {
    position are synced to the graph's live pan/zoom from there. */
 .board-grid-bg {
   background-image: radial-gradient(circle, var(--color-border) 1px, transparent 1px);
+  /* The board overrides this inline, syncing it to the graph's own transform so the
+     dots pan and zoom with the content. The default matters for anywhere else that
+     wants the same surface (the landing page's diagram): without a size, the
+     gradient renders as one lone dot in the middle of the element. */
+  background-size: 24px 24px;
 }
 
 /* MiniMap plugin renders into this div — sized to match the `width`/`height`

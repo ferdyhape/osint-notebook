@@ -3,6 +3,7 @@ import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { NavBar } from "@/components/NavBar";
 import { VerifyBanner } from "@/components/VerifyBanner";
 import { getCurrentUser } from "@/lib/auth";
+import { siteDescription, siteName, siteTagline, siteTitle, siteUrl } from "@/lib/site";
 import "./globals.css";
 
 // One grotesque sans for both headings and body — the standard, unambiguously
@@ -21,8 +22,39 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OSINT Notebook",
-  description: "Case notebook & pivot suggestions for OSINT investigations",
+  // Resolves every relative canonical/OG URL below against the real public
+  // origin. Without it Next emits relative OG URLs, which crawlers and chat
+  // unfurlers can't fetch.
+  metadataBase: new URL(siteUrl),
+  title: {
+    // Every page supplies just its own subject; this appends the product name
+    // once, so no page has to (and none ends up saying it twice).
+    template: `%s · ${siteName}`,
+    default: siteTitle,
+  },
+  description: siteDescription,
+  applicationName: siteName,
+  // The home page is the only canonical entry point; each public route sets its
+  // own below, and the private ones are noindex, so a stray duplicate URL
+  // (a ?next= redirect, say) can't compete with it.
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName,
+    title: siteTitle,
+    description: siteTagline,
+    url: "/",
+    locale: "en_US",
+  },
+  twitter: { card: "summary_large_image", title: siteTitle, description: siteTagline },
+  // The default for the whole app. Anything behind a login, and every share
+  // link, overrides this to noindex — see each route's own metadata.
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
+  formatDetection: { telephone: false, address: false, email: false },
 };
 
 // Applies the saved theme before first paint, so there is no flash of the wrong one.

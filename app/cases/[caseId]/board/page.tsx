@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
@@ -7,6 +8,23 @@ import { InvestigationBoard } from "@/components/board/InvestigationBoard";
 import { CaseViewTabs } from "@/components/board/CaseViewTabs";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ caseId: string }>;
+}): Promise<Metadata> {
+  const { caseId } = await params;
+  const found = await prisma.case.findUnique({
+    where: { id: Number(caseId) },
+    select: { name: true },
+  });
+  return {
+    title: found ? `${found.name} · Board` : "Board",
+    robots: { index: false, follow: false },
+  };
+}
+
 
 export default async function CaseBoardPage({ params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;

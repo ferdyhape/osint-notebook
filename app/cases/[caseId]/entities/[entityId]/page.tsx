@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -12,6 +13,23 @@ import { CopyButton } from "@/components/CopyButton";
 import { isUrlValue } from "@/lib/pivot";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ caseId: string; entityId: string }>;
+}): Promise<Metadata> {
+  const { entityId } = await params;
+  const found = await prisma.entity.findUnique({
+    where: { id: Number(entityId) },
+    select: { value: true, type: true },
+  });
+  return {
+    title: found ? `${found.value} · ${found.type}` : "Entity",
+    robots: { index: false, follow: false },
+  };
+}
+
 
 export default async function EntityDetailPage({
   params,

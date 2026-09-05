@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { resolveShareToken } from "@/lib/share-link";
 import { fetchCaseBoardData, entitiesToNodes, relationshipsToEdges, notesByEntity, computeForceLayout } from "@/lib/board";
@@ -5,8 +6,19 @@ import { InvestigationBoard } from "@/components/board/InvestigationBoard";
 import { CaseViewTabs } from "@/components/board/CaseViewTabs";
 import { InvalidShareLink } from "@/components/InvalidShareLink";
 import { ExportMenu } from "@/components/ExportMenu";
+import { shareMetadata } from "@/lib/share-metadata";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  return shareMetadata(token, "board");
+}
+
 
 export default async function SharedBoardPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

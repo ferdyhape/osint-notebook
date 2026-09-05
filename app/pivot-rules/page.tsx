@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { PivotRuleFormModal } from "@/components/PivotRuleFormModal";
 import { PivotRulesTable } from "@/components/PivotRulesTable";
 
 export const dynamic = "force-dynamic";
+
+/** Behind a login, so there is nothing here for a crawler to index — and a case
+ *  title is the investigation's subject, which should never reach a search
+ *  result. `follow: false` too, so the private URLs it links to aren't queued. */
+export const metadata: Metadata = {
+  title: "Pivot rules",
+  robots: { index: false, follow: false },
+};
+
 
 export default async function PivotRulesPage() {
   const rules = await prisma.pivotRule.findMany({

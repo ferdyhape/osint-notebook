@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { resolveShareToken } from "@/lib/share-link";
 import { fetchCaseBoardData } from "@/lib/board";
@@ -6,8 +7,19 @@ import { NoteTimeline } from "@/components/NoteTimeline";
 import { ExportMenu } from "@/components/ExportMenu";
 import { CaseViewTabs } from "@/components/board/CaseViewTabs";
 import { InvalidShareLink } from "@/components/InvalidShareLink";
+import { shareMetadata } from "@/lib/share-metadata";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  return shareMetadata(token, "detail");
+}
+
 
 export default async function SharedDetailPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

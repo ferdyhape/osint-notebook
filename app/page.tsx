@@ -1,14 +1,25 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { CaseCard } from "@/components/CaseCard";
 import { CaseFormModal } from "@/components/CaseFormModal";
+import { LandingPage } from "@/components/landing/LandingPage";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+/** One URL, two pages. A crawler never carries a session, so what gets indexed
+ *  is always the landing page — which is why the root metadata in the layout
+ *  describes the product. A signed-in member gets a title that names what they
+ *  are actually looking at instead. */
+export async function generateMetadata(): Promise<Metadata> {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  return user ? { title: "Your cases", robots: { index: false, follow: false } } : {};
+}
+
+export default async function HomePage() {
+  const user = await getCurrentUser();
+  // Not signed in: this is the public front door, not a redirect to a login form.
+  if (!user) return <LandingPage />;
 
   const allCases = await prisma.case.findMany({
     where: {
