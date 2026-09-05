@@ -47,7 +47,7 @@ export function RelationshipEdge({
 
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<SVGCircleElement>) => {
-      if (readOnly) return;
+      if (readOnly || event.button !== 0) return;
       event.stopPropagation();
       event.currentTarget.setPointerCapture(event.pointerId);
       dragRef.current = { midX, midY, nx, ny };
@@ -60,6 +60,7 @@ export function RelationshipEdge({
     (event: ReactPointerEvent<SVGCircleElement>) => {
       const drag = dragRef.current;
       if (!drag) return;
+      event.stopPropagation();
       const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
       const offset = (flowPos.x - drag.midX) * drag.nx + (flowPos.y - drag.midY) * drag.ny;
       setDragOffset(offset);
@@ -67,25 +68,43 @@ export function RelationshipEdge({
     [screenToFlowPosition]
   );
 
-  const onPointerUp = useCallback(
-    (event: ReactPointerEvent<SVGCircleElement>) => {
+  // Persists the current drag offset (or reverts to the last saved value on a cancelled
+  // gesture) and always clears drag state — shared by pointerup and pointercancel so an
+  // interrupted drag (e.g. the browser taking over for a system gesture) can't get stuck.
+  const endDrag = useCallback(
+    (event: ReactPointerEvent<SVGCircleElement>, commit: boolean) => {
       if (!dragRef.current) return;
       dragRef.current = null;
-      event.currentTarget.releasePointerCapture(event.pointerId);
-      setDragOffset((finalOffset) => {
-        const resolved = finalOffset ?? storedOffset;
-        setEdges((eds) =>
-          eds.map((e) => (e.id === id ? { ...e, data: { ...e.data, bendOffset: resolved } } : e))
-        );
-        fetch(`/api/relationships/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bendOffset: resolved }),
-        });
-        return null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      // Read the drag offset from closure rather than a setDragOffset(prev => ...) updater —
+      // an updater function runs during React's render phase, so calling another component's
+      // setState (setEdges, here) from inside one triggers "setState while rendering a
+      // different component". By the time this handler runs, `liveOffset` already reflects the
+      // last pointermove's render, so it's safe to read directly.
+      const resolved = liveOffset;
+      setDragOffset(null);
+      if (!commit || resolved === storedOffset) return;
+      setEdges((eds) =>
+        eds.map((e) => (e.id === id ? { ...e, data: { ...e.data, bendOffset: resolved } } : e))
+      );
+      fetch(`/api/relationships/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bendOffset: resolved }),
+      }).catch(() => {
+        // A dropped network request just leaves the curve un-persisted server-side;
+        // the next successful drag (or a reload) reconciles it. Nothing to surface here.
       });
     },
-    [id, setEdges, storedOffset]
+    [id, setEdges, liveOffset, storedOffset]
+  );
+
+  const onPointerUp = useCallback((event: ReactPointerEvent<SVGCircleElement>) => endDrag(event, true), [endDrag]);
+  const onPointerCancel = useCallback(
+    (event: ReactPointerEvent<SVGCircleElement>) => endDrag(event, false),
+    [endDrag]
   );
 
   return (
@@ -100,23 +119,34 @@ export function RelationshipEdge({
         }}
       />
       {!readOnly && (
-        <circle
-          cx={controlX}
-          cy={controlY}
-          r={dragging ? 7 : 5}
-          className="edge-bend-handle"
-          data-active={dragging || selected}
-          style={{
-            fill: dragging ? "var(--color-accent)" : "var(--color-surface)",
-            stroke: "var(--color-accent)",
-            strokeWidth: 1.5,
-            cursor: dragging ? "grabbing" : "grab",
-            pointerEvents: "all",
-          }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-        />
+        <>
+          {/* Invisible, generously-sized hit target — the visual dot below stays small and
+              calm, but grabbing it doesn't require pixel-perfect precision. */}
+          <circle
+            cx={controlX}
+            cy={controlY}
+            r={12}
+            fill="transparent"
+            style={{ cursor: dragging ? "grabbing" : "grab", pointerEvents: "all", touchAction: "none" }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerCancel}
+          />
+          <circle
+            cx={controlX}
+            cy={controlY}
+            r={dragging ? 7 : 5}
+            className="edge-bend-handle"
+            data-active={dragging || selected}
+            style={{
+              fill: dragging ? "var(--color-accent)" : "var(--color-surface)",
+              stroke: "var(--color-accent)",
+              strokeWidth: 1.5,
+              pointerEvents: "none",
+            }}
+          />
+        </>
       )}
       {label ? (
         <EdgeLabelRenderer>
