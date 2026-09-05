@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getCaseAccess } from "@/lib/case-access";
-import { fetchCaseBoardData, computeForceLayout, entitiesToNodes, relationshipsToEdges } from "@/lib/board";
+import { fetchCaseBoardData, computeForceLayout, entitiesToNodes, relationshipsToEdges, notesByEntity } from "@/lib/board";
 import { InvestigationBoard } from "@/components/board/InvestigationBoard";
 import { CaseViewTabs } from "@/components/board/CaseViewTabs";
 
@@ -43,6 +43,7 @@ export default async function CaseBoardPage({ params }: { params: Promise<{ case
         combinableRules={combinableRules}
         initialNodes={entitiesToNodes(data.entities, fallbackPositions)}
         initialEdges={relationshipsToEdges(data.relationships)}
+        entityNotes={notesByEntity(data.notes)}
       />
     </div>
   );

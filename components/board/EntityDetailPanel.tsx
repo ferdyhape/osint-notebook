@@ -2,12 +2,14 @@ import Link from "next/link";
 import { PivotSuggestionsPanel } from "@/components/PivotSuggestionsPanel";
 import { CopyButton } from "@/components/CopyButton";
 import { isUrlValue } from "@/lib/pivot";
-import type { EntityNodeData } from "@/lib/board";
+import type { BoardNotePreview, EntityNodeData } from "@/lib/board";
 
 type Props = {
   caseId: number;
   entityId: number;
   data: EntityNodeData;
+  /** Every note attached to this entity, newest first — read-only here either way. */
+  notes: BoardNotePreview[];
   readOnly: boolean;
   detailHref?: string;
   /** False on the anonymous share view — pivot suggestions are an investigation action and
@@ -20,6 +22,7 @@ export function EntityDetailPanel({
   caseId,
   entityId,
   data,
+  notes,
   readOnly,
   detailHref,
   showSuggestions = true,
@@ -59,6 +62,24 @@ export function EntityDetailPanel({
           </Link>
         )}
       </div>
+
+      {notes.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="item-title">
+            {notes.length} {notes.length === 1 ? "note" : "notes"}
+          </h3>
+          <ul className="space-y-2">
+            {notes.map((note) => (
+              <li key={note.id} className="rounded-[8px] bg-surface-subtle px-3 py-2">
+                <p className="text-xs whitespace-pre-wrap break-words">{note.content}</p>
+                <p className="text-[0.6875rem] text-muted mt-1.5">
+                  {new Date(note.createdAt).toLocaleDateString("en-GB")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {showSuggestions ? (
         <div className="space-y-2">

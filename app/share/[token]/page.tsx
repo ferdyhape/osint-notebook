@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { resolveShareToken } from "@/lib/share-link";
-import { fetchCaseBoardData, entitiesToNodes, relationshipsToEdges, computeForceLayout } from "@/lib/board";
+import { fetchCaseBoardData, entitiesToNodes, relationshipsToEdges, notesByEntity, computeForceLayout } from "@/lib/board";
 import { InvestigationBoard } from "@/components/board/InvestigationBoard";
 import { CaseViewTabs } from "@/components/board/CaseViewTabs";
 import { InvalidShareLink } from "@/components/InvalidShareLink";
@@ -46,6 +46,7 @@ export default async function SharedBoardPage({ params }: { params: Promise<{ to
         combinableRules={combinableRules}
         initialNodes={entitiesToNodes(data.entities, fallbackPositions)}
         initialEdges={relationshipsToEdges(data.relationships)}
+        entityNotes={notesByEntity(data.notes)}
       />
     </div>
   );

@@ -55,12 +55,28 @@ export type EntityNodeData = {
   readOnly?: boolean;
 };
 
-// Fixed box size every entity card renders at — X6 nodes need explicit dimensions,
-// unlike a React Flow node's auto-sizing div. Tall enough for type chip + value +
-// an optional source line + an optional note-count line without clipping, plus a
-// margin all round for EntityNode's drag-to-connect ring (see .entity-node-magnet).
+// X6 nodes need explicit dimensions, unlike a React Flow node's auto-sizing div.
+// Width is fixed (long values truncate rather than reflowing the board), height
+// is derived per entity: a card carrying neither a source nor any notes is two
+// lines tall, and padding every card out to the tallest possible one left most
+// of them visibly half empty. The constants below mirror EntityNode.tsx's own
+// spacing — keep them in step with it.
 export const NODE_WIDTH = 248;
-export const NODE_HEIGHT = 144;
+const RING_INSET = 16; // EntityNode's `inset-[16px]` drag-to-connect ring margin, per side
+const CARD_PADDING_Y = 12; // `py-3`, per side
+const CARD_BORDER = 1; // `.card` border, per side
+const HEADER_HEIGHT = 35; // type eyebrow + value line (taller than the 32px type chip beside it)
+const SOURCE_LINE = 20; // `mt-0.5` + one `text-xs` line
+const NOTE_ROW = 37; // `mt-2.5` + `pt-2` + 1px divider + one `text-xs` line
+
+export function entityNodeHeight(entity: { source: string | null; noteCount: number }) {
+  return (
+    2 * (RING_INSET + CARD_PADDING_Y + CARD_BORDER) +
+    HEADER_HEIGHT +
+    (entity.source ? SOURCE_LINE : 0) +
+    (entity.noteCount > 0 ? NOTE_ROW : 0)
+  );
+}
 
 /** One Prisma query shared by the owner-side board route and the public share route. */
 export async function fetchCaseBoardData(caseId: number) {
@@ -142,6 +158,23 @@ export async function fetchCaseBoardData(caseId: number) {
   };
 }
 
+/** Serialisable note shape for the board's client bundle (`createdAt` as an ISO string). */
+export type BoardNotePreview = { id: number; content: string; createdAt: string };
+
+/** Notes grouped by the entity they're attached to. The board's detail panel renders
+ *  these inline: an entity card shows "2 notes", and on a shared board there is no
+ *  entity detail page to click through to — so without this, a guest can see that
+ *  notes exist but never read them. */
+export function notesByEntity(notes: BoardNote[]): Record<number, BoardNotePreview[]> {
+  const grouped: Record<number, BoardNotePreview[]> = {};
+  for (const note of notes) {
+    if (!note.entity) continue;
+    const bucket = (grouped[note.entity.id] ??= []);
+    bucket.push({ id: note.id, content: note.content, createdAt: note.createdAt.toISOString() });
+  }
+  return grouped;
+}
+
 /** Synchronous one-shot force layout — not a live simulation. */
 type LayoutNode = SimulationNodeDatum & { id: number };
 
@@ -197,7 +230,7 @@ export function entitiesToNodes(
       x: pos.x,
       y: pos.y,
       width: NODE_WIDTH,
-      height: NODE_HEIGHT,
+      height: entityNodeHeight(e),
       data: { type: e.type, value: e.value, source: e.source, noteCount: e.noteCount },
     };
   });

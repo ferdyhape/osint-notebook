@@ -2,10 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Graph, Keyboard, MiniMap, Selection, Snapline, type Edge, type Node } from "@antv/x6";
+import { Graph, History, Keyboard, MiniMap, Selection, Snapline, type Edge, type Node } from "@antv/x6";
 import { register } from "@antv/x6-react-shape";
 import type { PivotRule } from "@prisma/client";
-import type { BoardAnchor, BoardEdgeShape, BoardNodeShape, EntityNodeData } from "@/lib/board";
+import type {
+  BoardAnchor,
+  BoardEdgeShape,
+  BoardNodeShape,
+  BoardNotePreview,
+  EntityNodeData,
+} from "@/lib/board";
 import { relationshipLabel } from "@/lib/edge-label-style";
 import { EntityNode } from "@/components/board/EntityNode";
 import { EntityDetailPanel } from "@/components/board/EntityDetailPanel";
@@ -66,10 +72,18 @@ function subscribeHint(onChange: () => void) {
   return () => hintListeners.delete(onChange);
 }
 
+// Only these node/edge properties go on the undo stack. Adding or deleting a
+// cell is a database write with its own generated id — undoing that in the
+// canvas alone would silently desync the board from the case, so creation and
+// deletion stay off the stack (both already sit behind their own confirmation).
+const UNDOABLE_PROPS = new Set(["position", "vertices", "source", "target"]);
+
 type Props = {
   caseId: number;
   initialNodes: BoardNodeShape[];
   initialEdges: BoardEdgeShape[];
+  /** Notes keyed by entity id — rendered inline in the detail panel. */
+  entityNotes: Record<number, BoardNotePreview[]>;
   combinableRules: PivotRule[];
   readOnly: boolean;
   /** Set only for the anonymous share view — hides the "view full details" link (that page requires a session) and disables pivot suggestions in the entity panel. */
@@ -106,6 +120,7 @@ export function InvestigationBoard({
   caseId,
   initialNodes,
   initialEdges,
+  entityNotes,
   combinableRules,
   readOnly,
   shareToken,
@@ -136,6 +151,7 @@ export function InvestigationBoard({
   >(null);
   const [confirmDeleteEntity, setConfirmDeleteEntity] = useState<string | null>(null);
   const [deletingEntity, setDeletingEntity] = useState(false);
+  const [history, setHistory] = useState({ canUndo: false, canRedo: false });
 
   const hintDismissed = useSyncExternalStore(
     subscribeHint,
@@ -461,8 +477,78 @@ export function InvestigationBoard({
         })
       );
 
+      // X6's autoResize ResizeObserver forwards whatever size the container
+      // reports, including a transient 0 (the board detached, hidden, or
+      // mid-fullscreen-transition). MiniMap.updatePaper then computes
+      // `Math.min(maxWidth / 0, …)` → Infinity and feeds that straight into
+      // targetGraph.translate() — which is exactly the reported
+      // "Failed to set the 'e' property on 'SVGMatrix' … non-finite" error.
+      // Both the observer and graph.resize() funnel through transform.resize,
+      // so dropping non-positive sizes here closes off the whole class. A
+      // zero-sized board has nothing to lay out anyway.
+      const resizeTransform = g.transform.resize.bind(g.transform);
+      g.transform.resize = (width?: number, height?: number) => {
+        if ((width != null && !(width > 0)) || (height != null && !(height > 0))) return g.transform;
+        return resizeTransform(width, height);
+      };
+
       if (!readOnly) {
+        // Undo/redo, scoped to geometry the board can replay against the server
+        // (see UNDOABLE_PROPS). `beforeAddCommand` sees change events under the
+        // single `cell:change:*` name with the real property in `args.key`.
+        g.use(
+          new History({
+            enabled: true,
+            stackSize: 60,
+            ignoreAdd: true,
+            ignoreRemove: true,
+            beforeAddCommand: (event, args) =>
+              event === "cell:change:*" && UNDOABLE_PROPS.has((args as { key?: string }).key ?? ""),
+          })
+        );
+        const syncHistory = () => setHistory({ canUndo: g.canUndo(), canRedo: g.canRedo() });
+        g.on("history:change", syncHistory);
+        syncHistory();
+
+        // An undo only rewinds the canvas — the server still holds the old
+        // geometry until we push it back. Re-anchoring/reconnecting an edge is
+        // already covered by the edge:change:source/target listeners below
+        // (they fire on programmatic changes too), so this only has to cover
+        // node positions and edge waypoints.
+        const persistAfterHistory = ({ cmds }: { cmds: { data: { id?: string } }[] }) => {
+          const ids = new Set(cmds.map((cmd) => cmd.data.id).filter(Boolean) as string[]);
+          for (const id of ids) {
+            if (!/^\d+$/.test(id)) continue;
+            const cell = g.getCellById(id);
+            if (!cell) continue;
+            if (cell.isNode()) {
+              const { x, y } = cell.position();
+              fetch(`/api/entities/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ positionX: x, positionY: y }),
+              });
+            } else if (cell.isEdge()) {
+              fetch(`/api/relationships/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ vertices: cell.getVertices() }),
+              });
+            }
+          }
+        };
+        g.on("history:undo", persistAfterHistory);
+        g.on("history:redo", persistAfterHistory);
+
         g.use(new Keyboard({ enabled: true }));
+        g.bindKey(["ctrl+z", "meta+z"], () => {
+          g.undo();
+          return false;
+        });
+        g.bindKey(["ctrl+shift+z", "meta+shift+z", "ctrl+y"], () => {
+          g.redo();
+          return false;
+        });
         g.bindKey(["Backspace", "Delete"], () => {
           const edgesToRemove = g.getSelectedCells().filter((c) => c.isEdge());
           if (edgesToRemove.length) g.removeCells(edgesToRemove);
@@ -706,13 +792,21 @@ export function InvestigationBoard({
 
         <div ref={graphMountRef} className="board-grid-bg absolute inset-0" />
         <div ref={minimapMountRef} className="board-minimap absolute bottom-3 right-3 z-10 card overflow-hidden" />
-        <BoardControls graph={graph} />
+        <BoardControls
+          graph={graph}
+          showHistory={!readOnly}
+          canUndo={history.canUndo}
+          canRedo={history.canRedo}
+          onUndo={() => graph?.undo()}
+          onRedo={() => graph?.redo()}
+        />
 
         {showDetailPanel && activeNodeData && (
           <EntityDetailPanel
             caseId={caseId}
             entityId={Number(activeNodeId)}
             data={activeNodeData}
+            notes={entityNotes[Number(activeNodeId)] ?? []}
             readOnly={readOnly}
             detailHref={shareToken ? undefined : `/cases/${caseId}/entities/${activeNodeId}`}
             showSuggestions={!shareToken}
