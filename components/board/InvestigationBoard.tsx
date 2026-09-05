@@ -90,6 +90,21 @@ type Props = {
   shareToken?: string;
 };
 
+// The endpoint handles are X6's arrowhead tools, whose shape is just an SVG path
+// in `attrs.d` — left at the default they render as arrowheads at *both* ends of
+// every edge, which reads as two conflicting direction arrows on a line like
+// "found from". Overriding the path with a circle turns them into plain
+// draw.io-style endpoint dots, leaving the edge's own target marker as the one
+// and only arrow, so direction is unambiguous.
+const ENDPOINT_HANDLE = "M -5 0 A 5 5 0 1 0 5 0 A 5 5 0 1 0 -5 0 Z";
+const endpointHandleAttrs = {
+  d: ENDPOINT_HANDLE,
+  fill: "var(--color-accent)",
+  stroke: "var(--color-surface)",
+  "stroke-width": 1.5,
+  cursor: "move",
+};
+
 /** Attaches the edge tools an editor can drag: a waypoint on the curve (built-in
  *  `vertices` tool, persisted via its own onChanged callback — fires once per
  *  drag, not per pixel), and both endpoints (built-in arrowhead tools — dropping
@@ -101,19 +116,35 @@ function attachEdgeTools(edge: Edge, onVerticesChanged: (edge: Edge) => void) {
     {
       name: "vertices",
       args: {
+        // `removable` (the default, spelled out here because the right-click
+        // "Delete breakpoint" item advertises it) also makes double-clicking a
+        // breakpoint delete it.
+        removable: true,
         attrs: { r: 6, fill: "var(--color-accent)", stroke: "var(--color-surface)", strokeWidth: 1.5 },
         onChanged: (options: { edge: Edge }) => onVerticesChanged(options.edge),
       },
     },
-    {
-      name: "source-arrowhead",
-      args: { attrs: { fill: "var(--color-accent)", stroke: "var(--color-surface)", "stroke-width": 1.5 } },
-    },
-    {
-      name: "target-arrowhead",
-      args: { attrs: { fill: "var(--color-accent)", stroke: "var(--color-surface)", "stroke-width": 1.5 } },
-    },
+    { name: "source-arrowhead", args: { attrs: endpointHandleAttrs } },
+    { name: "target-arrowhead", args: { attrs: endpointHandleAttrs } },
   ]);
+}
+
+/** Index of the breakpoint the user right-clicked on, or -1 if the click didn't
+ *  land near one. The threshold is in screen pixels, so it stays a comfortable
+ *  target at any zoom level. */
+const VERTEX_HIT_RADIUS = 14;
+function vertexIndexNear(edge: Edge, local: { x: number; y: number }, scale: number) {
+  const radius = VERTEX_HIT_RADIUS / (scale || 1);
+  let index = -1;
+  let closest = radius;
+  edge.getVertices().forEach((vertex, i) => {
+    const distance = Math.hypot(vertex.x - local.x, vertex.y - local.y);
+    if (distance <= closest) {
+      closest = distance;
+      index = i;
+    }
+  });
+  return index;
 }
 
 export function InvestigationBoard({
@@ -146,7 +177,7 @@ export function InvestigationBoard({
   // panel via a plain click, with no edit actions to offer them here).
   const [contextMenu, setContextMenu] = useState<
     | { kind: "node"; id: string; x: number; y: number }
-    | { kind: "edge"; id: string; x: number; y: number }
+    | { kind: "edge"; id: string; x: number; y: number; vertexIndex: number }
     | null
   >(null);
   const [confirmDeleteEntity, setConfirmDeleteEntity] = useState<string | null>(null);
@@ -226,7 +257,7 @@ export function InvestigationBoard({
       });
       if (!res.ok) throw new Error();
       const created = await res.json();
-      const edge = graph.addEdge({
+      graph.addEdge({
         id: String(created.id),
         shape: "relationship-edge",
         source: pendingConnection.source,
@@ -235,7 +266,8 @@ export function InvestigationBoard({
         labels: [relationshipLabel(created.relationType)],
         data: { relationType: created.relationType },
       });
-      attachEdgeTools(edge, persistVertices);
+      // No tools attached here — like every other edge, this one grows its
+      // handles on hover.
       setPendingConnection(null);
     } finally {
       setCreatingEdge(false);
@@ -328,6 +360,16 @@ export function InvestigationBoard({
     const len = Math.hypot(dx, dy) || 1;
     const bend = { x: (p1.x + p2.x) / 2 - (dy / len) * 60, y: (p1.y + p2.y) / 2 + (dx / len) * 60 };
     edge.setVertices([bend]);
+    persistVertices(edge);
+  }
+
+  /** Removes the single breakpoint the right-click landed on, leaving the rest of
+   *  the line's shape intact (double-clicking the handle does the same thing —
+   *  this is the discoverable route to it). */
+  function deleteEdgeVertex(edgeId: string, index: number) {
+    const edge = graph?.getCellById(edgeId);
+    if (!edge?.isEdge()) return;
+    edge.removeVertexAt(index);
     persistVertices(edge);
   }
 
@@ -573,10 +615,11 @@ export function InvestigationBoard({
       g.on("scale", syncGridBg);
       syncGridBg();
 
+      // Edge tools are attached on hover/selection rather than up front (see the
+      // edge:mouseenter handler) — a board where every edge permanently wears
+      // three handles is both noisy and, with a dot sitting on the target
+      // connection point, hides the very direction arrow it should be clarifying.
       g.fromJSON({ nodes: initialNodes, edges: initialEdges });
-      for (const edge of g.getEdges()) {
-        if (!readOnly) attachEdgeTools(edge, persistVertices);
-      }
       for (const node of g.getNodes()) {
         const data = node.getData<EntityNodeData>();
         node.setData({ ...data, readOnly }, { overwrite: true });
@@ -633,7 +676,14 @@ export function InvestigationBoard({
         g.on("edge:contextmenu", ({ e, edge }) => {
           e.preventDefault();
           if (!isPlainRightClick(e)) return;
-          setContextMenu({ kind: "edge", id: edge.id, x: e.clientX, y: e.clientY });
+          const local = g.clientToLocal(e.clientX, e.clientY);
+          setContextMenu({
+            kind: "edge",
+            id: edge.id,
+            x: e.clientX,
+            y: e.clientY,
+            vertexIndex: vertexIndexNear(edge, local, g.scale().sx),
+          });
         });
         g.on("blank:contextmenu", ({ e }) => {
           e.preventDefault();
@@ -684,10 +734,25 @@ export function InvestigationBoard({
         fetch(`/api/relationships/${edge.id}`, { method: "DELETE" });
       });
 
-      g.on("edge:selected", ({ edge }) => edge.attr({ line: { stroke: "var(--color-accent)", strokeWidth: 2 } }));
-      g.on("edge:unselected", ({ edge }) =>
-        edge.attr({ line: { stroke: "var(--color-border)", strokeWidth: 1.5 } })
-      );
+      g.on("edge:selected", ({ edge }) => {
+        edge.attr({ line: { stroke: "var(--color-accent)", strokeWidth: 2 } });
+        if (!readOnly) attachEdgeTools(edge, persistVertices);
+      });
+      g.on("edge:unselected", ({ edge }) => {
+        edge.attr({ line: { stroke: "var(--color-border)", strokeWidth: 1.5 } });
+        if (!readOnly) edge.removeTools();
+      });
+
+      if (!readOnly) {
+        // Hovering an edge reveals its handles; leaving hides them again unless
+        // it's selected. X6 stops routing pointer events through the graph view
+        // while a tool is mid-drag, so `edge:mouseleave` can't fire out from
+        // under a drag and pull the handle away.
+        g.on("edge:mouseenter", ({ edge }) => attachEdgeTools(edge, persistVertices));
+        g.on("edge:mouseleave", ({ edge }) => {
+          if (!g.isSelected(edge)) edge.removeTools();
+        });
+      }
 
       const updateCounts = () => setCounts({ nodes: g.getNodes().length, edges: g.getEdges().length });
       g.on("node:added node:removed edge:added edge:removed", updateCounts);
@@ -746,9 +811,13 @@ export function InvestigationBoard({
     }
     const id = contextMenu.id;
     const edge = graph?.getCellById(id);
-    const hasCurve = Boolean(edge?.isEdge() && edge.getVertices().length > 0);
+    const bendCount = edge?.isEdge() ? edge.getVertices().length : 0;
+    const { vertexIndex } = contextMenu;
     return [
-      { label: hasCurve ? "Straighten line" : "Curve this line", onClick: () => toggleEdgeCurve(id) },
+      ...(vertexIndex >= 0
+        ? [{ label: "Delete breakpoint", onClick: () => deleteEdgeVertex(id, vertexIndex) }]
+        : []),
+      { label: bendCount > 0 ? "Straighten line" : "Curve this line", onClick: () => toggleEdgeCurve(id) },
       { label: "Reverse direction", onClick: () => reverseEdgeDirection(id) },
       { label: "Delete relationship", danger: true, onClick: () => deleteEdge(id) },
     ];
