@@ -65,6 +65,9 @@ model Relationship {
   /// default), set once a user drags the endpoint onto a specific spot.
   sourceAnchor Json?
   targetAnchor Json?
+  /// X6 connector name deciding how the line is drawn between its waypoints:
+  /// "smooth" for a true curve through them, null/"normal" for straight segments.
+  connector    String?
   createdAt    DateTime @default(now())
 
   case    Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)

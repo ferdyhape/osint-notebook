@@ -32,6 +32,8 @@ export type BoardRelationship = {
   vertices: { x: number; y: number }[] | null;
   sourceAnchor: BoardAnchor;
   targetAnchor: BoardAnchor;
+  /** X6 connector name — "smooth" draws a true curve through the waypoints; null is straight segments. */
+  connector: string | null;
 };
 
 export type BoardNote = {
@@ -110,6 +112,7 @@ export async function fetchCaseBoardData(caseId: number) {
           vertices: true,
           sourceAnchor: true,
           targetAnchor: true,
+          connector: true,
         },
       },
       notes: {
@@ -143,6 +146,7 @@ export async function fetchCaseBoardData(caseId: number) {
     vertices: (r.vertices as { x: number; y: number }[] | null) ?? null,
     sourceAnchor: r.sourceAnchor as BoardAnchor,
     targetAnchor: r.targetAnchor as BoardAnchor,
+    connector: r.connector,
   }));
   const notes: BoardNote[] = found.notes;
 
@@ -246,6 +250,7 @@ export type BoardEdgeShape = {
   source: { cell: string; anchor?: BoardAnchorValue };
   target: { cell: string; anchor?: BoardAnchorValue };
   vertices: { x: number; y: number }[];
+  connector: string;
   labels: ReturnType<typeof relationshipLabel>[];
   data: { relationType: string };
 };
@@ -257,6 +262,7 @@ export function relationshipsToEdges(relationships: BoardRelationship[]): BoardE
     source: { cell: String(r.entityAId), anchor: r.sourceAnchor ?? undefined },
     target: { cell: String(r.entityBId), anchor: r.targetAnchor ?? undefined },
     vertices: r.vertices ?? [],
+    connector: r.connector ?? "normal",
     labels: [relationshipLabel(r.relationType)],
     data: { relationType: r.relationType },
   }));

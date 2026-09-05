@@ -129,6 +129,13 @@ function attachEdgeTools(edge: Edge, onVerticesChanged: (edge: Edge) => void) {
   ]);
 }
 
+/** An edge's connector is stored either as a bare name or as a `{name, args}`
+ *  object, depending on how it was set — this flattens both to the name. */
+function connectorName(edge: Edge) {
+  const connector = edge.getConnector();
+  return typeof connector === "string" ? connector : connector?.name;
+}
+
 /** Index of the breakpoint the user right-clicked on, or -1 if the click didn't
  *  land near one. The threshold is in screen pixels, so it stays a comfortable
  *  target at any zoom level. */
@@ -333,6 +340,22 @@ export function InvestigationBoard({
       setDeletingEntity(false);
       setConfirmDeleteEntity(null);
     }
+  }
+
+  /** Switches how the line is drawn between its waypoints. `smooth` runs a single
+   *  cubic curve through every point (X6's Curve.throughPoints), so the whole
+   *  line bends continuously and each breakpoint you drag reshapes the arc —
+   *  rather than `normal`'s straight segments meeting at hard corners. */
+  function setEdgeConnector(edgeId: string, connector: "smooth" | "normal") {
+    const edge = graph?.getCellById(edgeId);
+    if (!edge?.isEdge()) return;
+    edge.setConnector(connector);
+    if (!/^\d+$/.test(edgeId)) return;
+    fetch(`/api/relationships/${edgeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ connector }),
+    });
   }
 
   // A one-click alternative to manually dragging a waypoint into existence —
@@ -811,13 +834,20 @@ export function InvestigationBoard({
     }
     const id = contextMenu.id;
     const edge = graph?.getCellById(id);
-    const bendCount = edge?.isEdge() ? edge.getVertices().length : 0;
+    const isEdge = Boolean(edge?.isEdge());
+    const bendCount = isEdge ? (edge as Edge).getVertices().length : 0;
+    const isCurved = isEdge && connectorName(edge as Edge) === "smooth";
     const { vertexIndex } = contextMenu;
     return [
       ...(vertexIndex >= 0
         ? [{ label: "Delete breakpoint", onClick: () => deleteEdgeVertex(id, vertexIndex) }]
         : []),
-      { label: bendCount > 0 ? "Straighten line" : "Curve this line", onClick: () => toggleEdgeCurve(id) },
+      isCurved
+        ? { label: "Make straight", onClick: () => setEdgeConnector(id, "normal") }
+        : { label: "Make curved", onClick: () => setEdgeConnector(id, "smooth") },
+      bendCount > 0
+        ? { label: "Remove all breakpoints", onClick: () => toggleEdgeCurve(id) }
+        : { label: "Add a breakpoint", onClick: () => toggleEdgeCurve(id) },
       { label: "Reverse direction", onClick: () => reverseEdgeDirection(id) },
       { label: "Delete relationship", danger: true, onClick: () => deleteEdge(id) },
     ];
