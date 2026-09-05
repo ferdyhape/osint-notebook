@@ -618,10 +618,17 @@ dialog::backdrop {
 }
 
 /* --- Investigation board (AntV X6) ---
-   Colors are passed straight to X6 as constructor/attrs options (grid dots,
-   edge stroke, selection highlight) rather than CSS custom properties, since
-   the library takes plain values there instead of exposing themeable CSS
-   vars — so there's very little to override here beyond our own mount points. */
+   Colors are passed straight to X6 as constructor/attrs options (edge stroke,
+   selection highlight) rather than CSS custom properties, since the library
+   takes plain values there instead of exposing themeable CSS vars — so
+   there's little to override here beyond our own mount points and grid. */
+
+/* The dot grid is drawn by hand (X6's own grid ties dot-spacing to its
+   snap-to-grid increment — see InvestigationBoard.tsx) — background-size/
+   position are synced to the graph's live pan/zoom from there. */
+.board-grid-bg {
+  background-image: radial-gradient(circle, var(--color-border) 1px, transparent 1px);
+}
 
 /* MiniMap plugin renders into this div — sized to match the `width`/`height`
    passed to `new MiniMap({...})` in InvestigationBoard.tsx. */
@@ -636,6 +643,13 @@ dialog::backdrop {
    from here, as a CSS override of its real rendered class. */
 .board-minimap .x6-widget-minimap {
   background-color: transparent;
+}
+
+/* Snapline plugin's alignment guides — no default stroke color of its own. */
+.x6-widget-snapline-vertical,
+.x6-widget-snapline-horizontal {
+  stroke: var(--color-accent);
+  stroke-width: 1px;
 }
 
 @media (max-width: 640px) {

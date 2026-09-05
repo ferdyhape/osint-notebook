@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Graph, Keyboard, MiniMap, Selection, type Edge, type Node } from "@antv/x6";
+import { Graph, Keyboard, MiniMap, Selection, Snapline, type Edge, type Node } from "@antv/x6";
 import { register } from "@antv/x6-react-shape";
 import type { PivotRule } from "@prisma/client";
 import type { BoardAnchor, BoardEdgeShape, BoardNodeShape, EntityNodeData } from "@/lib/board";
@@ -12,6 +12,7 @@ import { EntityDetailPanel } from "@/components/board/EntityDetailPanel";
 import { BoardSelectionToolbar } from "@/components/board/BoardSelectionToolbar";
 import { BoardControls } from "@/components/board/BoardControls";
 import { safeZoomToFit } from "@/components/board/safe-zoom";
+import { BoardContextMenu, type ContextMenuItem } from "@/components/board/BoardContextMenu";
 import { Modal } from "@/components/Modal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
@@ -32,6 +33,11 @@ Graph.registerEdge(
   },
   true
 );
+
+// Matches the dot spacing the old React Flow board used — kept as a plain
+// CSS background (see `.board-grid-bg` in globals.css) rather than X6's own
+// grid renderer, since that ties dot-spacing to the snap-to-grid increment.
+const BOARD_GRID_SIZE = 24;
 
 // A first-time visitor to a shared board gets a one-off nudge toward
 // fullscreen; a listener Set (matching lib/theme.ts's pattern) lets the
@@ -81,12 +87,18 @@ function attachEdgeTools(edge: Edge, onVerticesChanged: (edge: Edge) => void) {
     {
       name: "vertices",
       args: {
-        attrs: { r: 4, fill: "var(--color-accent)", stroke: "var(--color-surface)", strokeWidth: 1.5 },
+        attrs: { r: 6, fill: "var(--color-accent)", stroke: "var(--color-surface)", strokeWidth: 1.5 },
         onChanged: (options: { edge: Edge }) => onVerticesChanged(options.edge),
       },
     },
-    "source-arrowhead",
-    "target-arrowhead",
+    {
+      name: "source-arrowhead",
+      args: { attrs: { fill: "var(--color-accent)", stroke: "var(--color-surface)", "stroke-width": 1.5 } },
+    },
+    {
+      name: "target-arrowhead",
+      args: { attrs: { fill: "var(--color-accent)", stroke: "var(--color-surface)", "stroke-width": 1.5 } },
+    },
   ]);
 }
 
@@ -119,6 +131,15 @@ export function InvestigationBoard({
   const [confirmReset, setConfirmReset] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [counts, setCounts] = useState({ nodes: initialNodes.length, edges: initialEdges.length });
+  // Right-click menu — editors only (guests already get a read-only detail
+  // panel via a plain click, with no edit actions to offer them here).
+  const [contextMenu, setContextMenu] = useState<
+    | { kind: "node"; id: string; x: number; y: number }
+    | { kind: "edge"; id: string; x: number; y: number }
+    | null
+  >(null);
+  const [confirmDeleteEntity, setConfirmDeleteEntity] = useState<string | null>(null);
+  const [deletingEntity, setDeletingEntity] = useState(false);
 
   const hintDismissed = useSyncExternalStore(
     subscribeHint,
@@ -245,6 +266,80 @@ export function InvestigationBoard({
     );
   }, []);
 
+  function copyEntityValue(nodeId: string) {
+    const value = graph?.getCellById(nodeId)?.getData<EntityNodeData>().value;
+    if (value) navigator.clipboard.writeText(value).catch(() => {});
+  }
+
+  function viewEntityDetails(nodeId: string) {
+    router.push(`/cases/${caseId}/entities/${nodeId}`);
+  }
+
+  async function confirmDeleteEntityAction() {
+    if (!confirmDeleteEntity || !graph) return;
+    setDeletingEntity(true);
+    try {
+      const res = await fetch(`/api/entities/${confirmDeleteEntity}`, { method: "DELETE" });
+      if (res.ok) {
+        const cell = graph.getCellById(confirmDeleteEntity);
+        if (cell) graph.removeCell(cell);
+        if (activeNodeId === confirmDeleteEntity) closeDetailPanel();
+      }
+    } finally {
+      setDeletingEntity(false);
+      setConfirmDeleteEntity(null);
+    }
+  }
+
+  // A one-click alternative to manually dragging a waypoint into existence —
+  // bends the line perpendicular to the straight path between the two
+  // entities' current centers. Toggled off the same way, back to a straight line.
+  function toggleEdgeCurve(edgeId: string) {
+    if (!graph) return;
+    const edge = graph.getCellById(edgeId);
+    if (!edge || !edge.isEdge()) return;
+    if (edge.getVertices().length > 0) {
+      edge.setVertices([]);
+      persistVertices(edge);
+      return;
+    }
+    const sourceCellId = edge.getSourceCellId();
+    const targetCellId = edge.getTargetCellId();
+    if (!sourceCellId || !targetCellId) return;
+    const a = graph.getCellById(sourceCellId);
+    const b = graph.getCellById(targetCellId);
+    if (!a?.isNode() || !b?.isNode()) return;
+    const p1 = a.getBBox().getCenter();
+    const p2 = b.getBBox().getCenter();
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const bend = { x: (p1.x + p2.x) / 2 - (dy / len) * 60, y: (p1.y + p2.y) / 2 + (dx / len) * 60 };
+    edge.setVertices([bend]);
+    persistVertices(edge);
+  }
+
+  function reverseEdgeDirection(edgeId: string) {
+    if (!graph) return;
+    const edge = graph.getCellById(edgeId);
+    if (!edge || !edge.isEdge()) return;
+    const sourceCellId = edge.getSourceCellId();
+    const targetCellId = edge.getTargetCellId();
+    if (!sourceCellId || !targetCellId) return;
+    edge.setSource({ cell: targetCellId });
+    edge.setTarget({ cell: sourceCellId });
+    fetch(`/api/relationships/${edgeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entityAId: Number(targetCellId), entityBId: Number(sourceCellId) }),
+    });
+  }
+
+  function deleteEdge(edgeId: string) {
+    const edge = graph?.getCellById(edgeId);
+    if (edge) graph!.removeCell(edge); // fires "edge:removed", which persists the delete
+  }
+
   useEffect(() => {
     const container = graphMountRef.current;
     const minimapContainer = minimapMountRef.current;
@@ -279,8 +374,30 @@ export function InvestigationBoard({
         // Keeps the graph's size synced to the container via a ResizeObserver
         // for window resizes, fullscreen toggles, etc. after this initial mount.
         autoResize: true,
+        // X6 defaults both of these to 0 — meaning literally *any* pixel of
+        // movement (real mouse/trackpad hardware essentially always reports
+        // some jitter) immediately commits to "this is a drag", which read as
+        // clicking-to-view-details being unreliable and dragging feeling
+        // trigger-happy/ambiguous. A few pixels of tolerance is the standard
+        // fix for exactly this class of complaint in pointer-driven UIs.
+        moveThreshold: 4,
+        clickThreshold: 4,
         background: { color: "transparent" },
-        grid: { visible: true, size: 24, type: "dot", args: { color: "var(--color-border)", thickness: 1.5 } },
+        // X6 ties its grid's visual dot-spacing and its drag/reposition
+        // snap-to-grid increment to the exact same `size` value — there's no
+        // way to have one without the other. That silently snapped every
+        // node move and every edge-endpoint drag to the nearest 24px, which
+        // read as "dragging is buggy" (imprecise, jumpy positioning) since
+        // the old React Flow board never snapped at all. Disabled here; the
+        // dot pattern is drawn instead via CSS on the graph's own container
+        // (see `.board-grid-bg` in globals.css), decoupled from any snapping.
+        grid: false,
+        // Without a floor, repeated zoom-out (the "−" button, or the wheel)
+        // can drive the scale toward 0 — which then feeds a divide-by-zero
+        // into the MiniMap plugin's own reaction to the graph's next resize
+        // (a real, reproduced "non-finite SVGMatrix" crash). A sane min/max
+        // makes that unreachable regardless of how zoom is triggered.
+        scaling: { min: 0.15, max: 4 },
         panning: true,
         mousewheel: { enabled: true, modifiers: ["ctrl", "meta"] },
         interacting: readOnly
@@ -336,7 +453,25 @@ export function InvestigationBoard({
           const edgesToRemove = g.getSelectedCells().filter((c) => c.isEdge());
           if (edgesToRemove.length) g.removeCells(edgesToRemove);
         });
+        // Alignment guides while dragging a node — snaps it flush with a
+        // neighbor's edge/center when within a few pixels, so tidying up the
+        // board doesn't come down to eyeballing it.
+        g.use(new Snapline({ enabled: true, sharp: true, tolerance: 8 }));
       }
+
+      // X6's own `grid` background ties dot-spacing to the snap-to-grid
+      // increment (disabled above), so the dots are drawn by hand instead —
+      // panning/zooming synced to the graph's own transform so they still
+      // move with the content exactly like a native grid would.
+      const syncGridBg = () => {
+        const scale = g.scale();
+        const translation = g.translate();
+        container!.style.backgroundSize = `${BOARD_GRID_SIZE * scale.sx}px ${BOARD_GRID_SIZE * scale.sy}px`;
+        container!.style.backgroundPosition = `${translation.tx}px ${translation.ty}px`;
+      };
+      g.on("translate", syncGridBg);
+      g.on("scale", syncGridBg);
+      syncGridBg();
 
       g.fromJSON({ nodes: initialNodes, edges: initialEdges });
       for (const edge of g.getEdges()) {
@@ -352,19 +487,26 @@ export function InvestigationBoard({
         // reacts to the source graph's own 'resize' event by dividing by its
         // *current* scale (see @antv/x6's MiniMap.updatePaper) — attaching it
         // any earlier risks that scale still being the pre-fit default, which
-        // has produced a divide-by-zero (non-finite SVGMatrix) crash here before.
-        g.use(
-          new MiniMap({
-            container: minimapContainer!,
-            width: 160,
-            height: 120,
-            padding: 8,
-            // The plugin hardcodes its internal preview graph's own
-            // `background: false` regardless of graphOptions, so the opaque
-            // white that produces against dark theme is overridden in CSS
-            // instead — see `.board-minimap .x6-widget-minimap` in globals.css.
-          })
-        );
+        // has produced a divide-by-zero (non-finite SVGMatrix) crash here
+        // before. Also try/catch'd: the plugin's own reaction to a resize is
+        // outside our control, and a missing minimap is purely cosmetic —
+        // not worth crashing the whole board over.
+        try {
+          g.use(
+            new MiniMap({
+              container: minimapContainer!,
+              width: 160,
+              height: 120,
+              padding: 8,
+              // The plugin hardcodes its internal preview graph's own
+              // `background: false` regardless of graphOptions, so the opaque
+              // white that produces against dark theme is overridden in CSS
+              // instead — see `.board-minimap .x6-widget-minimap` in globals.css.
+            })
+          );
+        } catch {
+          // See above.
+        }
       });
 
       g.on("node:click", ({ node }) => {
@@ -375,6 +517,29 @@ export function InvestigationBoard({
         setActiveNodeId(null);
         setActiveNodeData(null);
       });
+
+      if (!readOnly) {
+        // `e.buttons` is a bitmask of buttons still held down — a genuine
+        // right-click reports just the right button; a trackpad's two-finger
+        // tap gesture sometimes fires a contextmenu event while the left
+        // button is *also* still down mid-drag, which briefly hijacked the
+        // drag into a menu popping up instead. Ignore those.
+        const isPlainRightClick = (e: { buttons: number }) => e.buttons === 0 || e.buttons === 2;
+        g.on("node:contextmenu", ({ e, node }) => {
+          e.preventDefault();
+          if (!isPlainRightClick(e)) return;
+          setContextMenu({ kind: "node", id: node.id, x: e.clientX, y: e.clientY });
+        });
+        g.on("edge:contextmenu", ({ e, edge }) => {
+          e.preventDefault();
+          if (!isPlainRightClick(e)) return;
+          setContextMenu({ kind: "edge", id: edge.id, x: e.clientX, y: e.clientY });
+        });
+        g.on("blank:contextmenu", ({ e }) => {
+          e.preventDefault();
+          setContextMenu(null);
+        });
+      }
 
       g.on("node:moved", ({ node }) => {
         if (readOnly) return;
@@ -477,6 +642,26 @@ export function InvestigationBoard({
     }
   }, [graph, activeNodeId]);
 
+  const contextMenuItems: ContextMenuItem[] = (() => {
+    if (!contextMenu) return [];
+    if (contextMenu.kind === "node") {
+      const id = contextMenu.id;
+      return [
+        { label: "View details", onClick: () => viewEntityDetails(id) },
+        { label: "Copy value", onClick: () => copyEntityValue(id) },
+        { label: "Delete entity", danger: true, onClick: () => setConfirmDeleteEntity(id) },
+      ];
+    }
+    const id = contextMenu.id;
+    const edge = graph?.getCellById(id);
+    const hasCurve = Boolean(edge?.isEdge() && edge.getVertices().length > 0);
+    return [
+      { label: hasCurve ? "Straighten line" : "Curve this line", onClick: () => toggleEdgeCurve(id) },
+      { label: "Reverse direction", onClick: () => reverseEdgeDirection(id) },
+      { label: "Delete relationship", danger: true, onClick: () => deleteEdge(id) },
+    ];
+  })();
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -513,7 +698,7 @@ export function InvestigationBoard({
           </div>
         )}
 
-        <div ref={graphMountRef} className="absolute inset-0" />
+        <div ref={graphMountRef} className="board-grid-bg absolute inset-0" />
         <div ref={minimapMountRef} className="board-minimap absolute bottom-3 right-3 z-10 card overflow-hidden" />
         <BoardControls graph={graph} />
 
@@ -572,6 +757,25 @@ export function InvestigationBoard({
         onCancel={() => setConfirmReset(false)}
         onConfirm={rearrange}
       />
+
+      <ConfirmDialog
+        open={confirmDeleteEntity !== null}
+        busy={deletingEntity}
+        title="Delete this entity?"
+        message="This removes it (and its relationships and notes) from the case entirely — not just from the board."
+        confirmLabel="Delete"
+        onCancel={() => setConfirmDeleteEntity(null)}
+        onConfirm={confirmDeleteEntityAction}
+      />
+
+      {contextMenu && (
+        <BoardContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={contextMenuItems}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }

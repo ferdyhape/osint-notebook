@@ -22,14 +22,14 @@ export function relationshipLabel(text: string) {
       },
       body: {
         ref: "label",
-        refWidth: "100%",
-        refHeight: "100%",
-        refX: 0,
-        refY: 0,
-        refWidth2: 16,
-        refHeight2: 8,
-        refX2: -8,
-        refY2: -4,
+        // Percentage refWidth/refHeight/refX/refY (not the refWidth2-style
+        // fixed-pixel modifiers) is the combination X6 actually sizes
+        // correctly against the label's real rendered bbox — the fixed-pixel
+        // variant produced a box that didn't track the text's true size.
+        refWidth: "140%",
+        refHeight: "150%",
+        refX: "-20%",
+        refY: "-25%",
         rx: 6,
         ry: 6,
         fill: "var(--color-surface)",
