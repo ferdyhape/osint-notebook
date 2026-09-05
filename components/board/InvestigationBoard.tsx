@@ -114,10 +114,6 @@ export function InvestigationBoard({
   const containerRef = useRef<HTMLDivElement>(null);
   const graphMountRef = useRef<HTMLDivElement>(null);
   const minimapMountRef = useRef<HTMLDivElement>(null);
-  // Bumped once per graph-creation effect run — lets a deferred dispose() (below)
-  // detect whether a newer run has already taken over the same containers before
-  // it fires, so it never tears down a graph that superseded it.
-  const graphGeneration = useRef(0);
   const [graph, setGraph] = useState<Graph | null>(null);
 
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
@@ -345,8 +341,6 @@ export function InvestigationBoard({
     const minimapContainer = minimapMountRef.current;
     if (!container || !minimapContainer) return;
 
-    const myGeneration = ++graphGeneration.current;
-
     // On a genuinely fresh browser tab, this effect can run before the
     // container has ever been given real on-screen dimensions (a layout race
     // with the browser's own first paint — reproduced concretely in a brand
@@ -358,6 +352,16 @@ export function InvestigationBoard({
     let cancelled = false;
     let pollId = 0;
     let currentGraph: Graph | null = null;
+    // Each graph gets its own throwaway host element inside our mount points.
+    // `GraphView.dispose()` *empties whatever container it was given* — so
+    // handing every graph the same persistent div means a disposing graph can
+    // wipe out its successor's DOM. (Guarding dispose to avoid that instead
+    // left the previous graph alive: React's dev double-invoke and every
+    // router.refresh() then stacked up zombie graphs, all still listening on
+    // `document` for mouse events — which is what made dragging, clicking and
+    // even plain cursor movement behave like the mouse button was stuck down.)
+    let host: HTMLDivElement | null = null;
+    let minimapHost: HTMLDivElement | null = null;
 
     function setup() {
       if (cancelled) return;
@@ -367,8 +371,18 @@ export function InvestigationBoard({
         return;
       }
 
+      host = document.createElement("div");
+      host.style.width = "100%";
+      host.style.height = "100%";
+      container!.appendChild(host);
+
+      minimapHost = document.createElement("div");
+      minimapHost.style.width = "100%";
+      minimapHost.style.height = "100%";
+      minimapContainer!.appendChild(minimapHost);
+
       const g = new Graph({
-        container: container!,
+        container: host,
         width: rect.width,
         height: rect.height,
         // Keeps the graph's size synced to the container via a ResizeObserver
@@ -494,7 +508,7 @@ export function InvestigationBoard({
         try {
           g.use(
             new MiniMap({
-              container: minimapContainer!,
+              container: minimapHost!,
               width: 160,
               height: 120,
               padding: 8,
@@ -604,29 +618,21 @@ export function InvestigationBoard({
       setGraph(null);
       const g = currentGraph;
       if (!g) return; // setup() never got past waiting for a real container size
-      // `dispose()` tears down the graph's internal state but — since this is a
-      // container we own, not one it created — doesn't remove its own root
-      // element from it; without clearing it ourselves, React's dev-mode
-      // double-invoke (mount → cleanup → mount, synchronously, before either
-      // of these queued callbacks below ever runs) would leave two overlapping
-      // graphs (and doubled labels) behind once the *next* mount's `fromJSON`
-      // renders into the same, still-occupied container.
-      container.innerHTML = "";
-      minimapContainer.innerHTML = "";
-      // `g.dispose()` itself is deferred a tick: it synchronously unmounts every
+      // Detach this graph's own host elements immediately, so the next mount
+      // starts from a clean container even though the dispose below is
+      // deferred. Because each graph owns a private host, disposing it later
+      // can't reach into whatever replaced it.
+      host?.remove();
+      minimapHost?.remove();
+      // `dispose()` is deferred a tick: it synchronously unmounts every
       // x6-react-shape node's own React root, and doing that while React is
       // still mid-render elsewhere (e.g. the router.refresh() after Re-arrange
       // re-rendering this same tree) is exactly the race React 19 warns about
       // ("Attempted to synchronously unmount a root while React was already
-      // rendering"). By the time this runs the DOM above is already gone, so
-      // there's nothing left for a newer graph to collide with either way —
-      // the generation check just skips disposing an object doing no more work.
-      queueMicrotask(() => {
-        // Deliberately reading the *current* ref value, not a stale snapshot —
-        // that's the entire point of the check.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        if (graphGeneration.current === myGeneration) g.dispose();
-      });
+      // rendering"). It must always run though — skipping it leaves the graph's
+      // `document`-level mouse listeners, Selection plugin and ResizeObserver
+      // alive forever, which is what made input feel stuck and chaotic.
+      queueMicrotask(() => g.dispose());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialNodes, initialEdges, readOnly]);
