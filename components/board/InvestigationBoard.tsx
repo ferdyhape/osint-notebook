@@ -19,6 +19,7 @@ import { BoardSelectionToolbar } from "@/components/board/BoardSelectionToolbar"
 import { BoardControls } from "@/components/board/BoardControls";
 import { safeZoomToFit } from "@/components/board/safe-zoom";
 import { BoardContextMenu, type ContextMenuItem } from "@/components/board/BoardContextMenu";
+import { BoardShortcutsModal } from "@/components/board/BoardShortcutsModal";
 import { Modal } from "@/components/Modal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
@@ -116,6 +117,11 @@ function attachEdgeTools(edge: Edge, onVerticesChanged: (edge: Edge) => void) {
     {
       name: "vertices",
       args: {
+        // Breakpoints are added deliberately, from the right-click menu's
+        // "Add breakpoint here" — left at X6's default, any click or small drag
+        // anywhere on a connector dropped a new one, so simply nudging a line
+        // kept littering it with waypoints.
+        addable: false,
         // `removable` (the default, spelled out here because the right-click
         // "Delete breakpoint" item advertises it) also makes double-clicking a
         // breakpoint delete it.
@@ -184,12 +190,13 @@ export function InvestigationBoard({
   // panel via a plain click, with no edit actions to offer them here).
   const [contextMenu, setContextMenu] = useState<
     | { kind: "node"; id: string; x: number; y: number }
-    | { kind: "edge"; id: string; x: number; y: number; vertexIndex: number }
+    | { kind: "edge"; id: string; x: number; y: number; vertexIndex: number; at: { x: number; y: number } }
     | null
   >(null);
   const [confirmDeleteEntity, setConfirmDeleteEntity] = useState<string | null>(null);
   const [deletingEntity, setDeletingEntity] = useState(false);
   const [history, setHistory] = useState({ canUndo: false, canRedo: false });
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const hintDismissed = useSyncExternalStore(
     subscribeHint,
@@ -205,6 +212,22 @@ export function InvestigationBoard({
     }
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, [graph]);
+
+  // Escape is handled here rather than through the Keyboard plugin because what
+  // it closes is React state (the detail panel, the right-click menu), not graph state.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      setContextMenu(null);
+      setActiveNodeId(null);
+      setActiveNodeData(null);
+      graph?.cleanSelection();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [graph]);
 
   async function toggleFullscreen() {
@@ -292,6 +315,29 @@ export function InvestigationBoard({
     });
   }, []);
 
+  // Debounced per entity: a drag ends in one call, but holding an arrow key to
+  // nudge a card fires on every key repeat, and each of those is a position we
+  // don't need to round-trip separately.
+  const positionPatchTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const persistNodePosition = useCallback((node: Node) => {
+    if (!/^\d+$/.test(node.id)) return;
+    const timers = positionPatchTimers.current;
+    const existing = timers.get(node.id);
+    if (existing) clearTimeout(existing);
+    timers.set(
+      node.id,
+      setTimeout(() => {
+        timers.delete(node.id);
+        const { x, y } = node.position();
+        fetch(`/api/entities/${node.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ positionX: x, positionY: y }),
+        });
+      }, 250)
+    );
+  }, []);
+
   // Dragging an endpoint (reconnect to a different entity, or re-anchor on the same
   // one) fires this repeatedly mid-drag — debounced per edge so one drag is one request.
   const anchorPatchTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -358,31 +404,30 @@ export function InvestigationBoard({
     });
   }
 
-  // A one-click alternative to manually dragging a waypoint into existence —
-  // bends the line perpendicular to the straight path between the two
-  // entities' current centers. Toggled off the same way, back to a straight line.
-  function toggleEdgeCurve(edgeId: string) {
+  /** Adds a breakpoint exactly where the user right-clicked, inserted into the
+   *  right segment of the line so the shape either side of it is preserved.
+   *  This is the only way to add one: the vertices tool's own click-the-line
+   *  behaviour is switched off (see attachEdgeTools), because every stray click
+   *  or nudge of a connector was silently leaving a new breakpoint behind. */
+  function addEdgeVertexAt(edgeId: string, at: { x: number; y: number }) {
     if (!graph) return;
     const edge = graph.getCellById(edgeId);
-    if (!edge || !edge.isEdge()) return;
-    if (edge.getVertices().length > 0) {
-      edge.setVertices([]);
-      persistVertices(edge);
-      return;
-    }
-    const sourceCellId = edge.getSourceCellId();
-    const targetCellId = edge.getTargetCellId();
-    if (!sourceCellId || !targetCellId) return;
-    const a = graph.getCellById(sourceCellId);
-    const b = graph.getCellById(targetCellId);
-    if (!a?.isNode() || !b?.isNode()) return;
-    const p1 = a.getBBox().getCenter();
-    const p2 = b.getBBox().getCenter();
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const bend = { x: (p1.x + p2.x) / 2 - (dy / len) * 60, y: (p1.y + p2.y) / 2 + (dx / len) * 60 };
-    edge.setVertices([bend]);
+    if (!edge?.isEdge()) return;
+    // EdgeView.getVertexIndex is what X6's own vertices tool uses to work out
+    // which segment a point on the line belongs to.
+    const view = graph.findViewByCell(edge) as unknown as {
+      getVertexIndex(x: number, y: number): number;
+    } | null;
+    edge.insertVertex(at, view?.getVertexIndex(at.x, at.y));
+    persistVertices(edge);
+  }
+
+  /** Drops every breakpoint, returning the line to a direct source-to-target
+   *  run (still curved if its connector is `smooth`). */
+  function clearEdgeVertices(edgeId: string) {
+    const edge = graph?.getCellById(edgeId);
+    if (!edge?.isEdge()) return;
+    edge.setVertices([]);
     persistVertices(edge);
   }
 
@@ -493,7 +538,17 @@ export function InvestigationBoard({
         // (a real, reproduced "non-finite SVGMatrix" crash). A sane min/max
         // makes that unreachable regardless of how zoom is triggered.
         scaling: { min: 0.15, max: 4 },
-        panning: true,
+        // draw.io's navigation model, and the reason plain left-drag isn't in
+        // `eventTypes`: X6 disables panning outright when it shares both an
+        // event type and a modifier with the Selection plugin's rubberband, so
+        // giving panning the space modifier is what lets marquee-select (plain
+        // drag) and pan (space+drag) coexist. `mouseWheel` covers the everyday
+        // case — the wheel translates the board on *both* axes, so a trackpad's
+        // sideways swipe and shift+wheel scroll left/right, which is what was
+        // missing when the wheel did nothing but zoom.
+        panning: { enabled: true, eventTypes: ["leftMouseDown", "mouseWheel"], modifiers: ["space"] },
+        // Reserved for zoom; X6's panning ignores ctrl-held wheels (which is
+        // also how a trackpad pinch arrives), so the two never both fire.
         mousewheel: { enabled: true, modifiers: ["ctrl", "meta"] },
         interacting: readOnly
           ? {
@@ -605,7 +660,11 @@ export function InvestigationBoard({
         g.on("history:undo", persistAfterHistory);
         g.on("history:redo", persistAfterHistory);
 
-        g.use(new Keyboard({ enabled: true }));
+        // `global` binds on the document rather than the graph container, so a
+        // shortcut works without having clicked the canvas first. X6's own guard
+        // already ignores keystrokes aimed at an input, so typing a relationship
+        // name or a note is unaffected.
+        g.use(new Keyboard({ enabled: true, global: true }));
         g.bindKey(["ctrl+z", "meta+z"], () => {
           g.undo();
           return false;
@@ -618,6 +677,52 @@ export function InvestigationBoard({
           const edgesToRemove = g.getSelectedCells().filter((c) => c.isEdge());
           if (edgesToRemove.length) g.removeCells(edgesToRemove);
         });
+        g.bindKey(["ctrl+a", "meta+a"], () => {
+          g.select(g.getNodes());
+          return false;
+        });
+        g.bindKey(["ctrl+c", "meta+c"], () => {
+          // Copying the selected entities' values is the OSINT-shaped version of
+          // copy: what you paste into the next tool is the indicators themselves.
+          const values = g
+            .getSelectedCells()
+            .filter((cell) => cell.isNode())
+            .map((cell) => (cell as Node).getData<EntityNodeData>().value);
+          if (!values.length) return; // nothing selected — leave the browser's own copy alone
+          navigator.clipboard.writeText(values.join("\n")).catch(() => {});
+          return false;
+        });
+        g.bindKey(["ctrl+=", "meta+=", "ctrl+shift+=", "meta+shift+="], () => {
+          g.zoom(0.1);
+          return false;
+        });
+        g.bindKey(["ctrl+-", "meta+-"], () => {
+          g.zoom(-0.1);
+          return false;
+        });
+        g.bindKey(["ctrl+shift+h", "meta+shift+h"], () => {
+          safeZoomToFit(g);
+          return false;
+        });
+        // Nudge the selection, draw.io style: a pixel at a time for fine
+        // alignment, a grid step with shift held.
+        for (const [keys, dx, dy] of [
+          [["up", "shift+up"], 0, -1],
+          [["down", "shift+down"], 0, 1],
+          [["left", "shift+left"], -1, 0],
+          [["right", "shift+right"], 1, 0],
+        ] as const) {
+          g.bindKey([...keys], (e) => {
+            const nodes = g.getSelectedCells().filter((cell) => cell.isNode());
+            if (!nodes.length) return;
+            const step = e.shiftKey ? BOARD_GRID_SIZE : 1;
+            for (const node of nodes) {
+              (node as Node).translate(dx * step, dy * step);
+              persistNodePosition(node as Node);
+            }
+            return false;
+          });
+        }
         // Alignment guides while dragging a node — snaps it flush with a
         // neighbor's edge/center when within a few pixels, so tidying up the
         // board doesn't come down to eyeballing it.
@@ -706,6 +811,7 @@ export function InvestigationBoard({
             x: e.clientX,
             y: e.clientY,
             vertexIndex: vertexIndexNear(edge, local, g.scale().sx),
+            at: { x: local.x, y: local.y },
           });
         });
         g.on("blank:contextmenu", ({ e }) => {
@@ -716,12 +822,7 @@ export function InvestigationBoard({
 
       g.on("node:moved", ({ node }) => {
         if (readOnly) return;
-        const { x, y } = node.position();
-        fetch(`/api/entities/${node.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ positionX: x, positionY: y }),
-        });
+        persistNodePosition(node);
       });
 
       g.on("selection:changed", ({ selected }) => {
@@ -839,15 +940,16 @@ export function InvestigationBoard({
     const isCurved = isEdge && connectorName(edge as Edge) === "smooth";
     const { vertexIndex } = contextMenu;
     return [
+      // Shape first (what the line passes through), then style (how it's drawn).
       ...(vertexIndex >= 0
         ? [{ label: "Delete breakpoint", onClick: () => deleteEdgeVertex(id, vertexIndex) }]
+        : [{ label: "Add breakpoint here", onClick: () => addEdgeVertexAt(id, contextMenu.at) }]),
+      ...(bendCount > 0
+        ? [{ label: "Remove all breakpoints", onClick: () => clearEdgeVertices(id) }]
         : []),
       isCurved
         ? { label: "Make straight", onClick: () => setEdgeConnector(id, "normal") }
         : { label: "Make curved", onClick: () => setEdgeConnector(id, "smooth") },
-      bendCount > 0
-        ? { label: "Remove all breakpoints", onClick: () => toggleEdgeCurve(id) }
-        : { label: "Add a breakpoint", onClick: () => toggleEdgeCurve(id) },
       { label: "Reverse direction", onClick: () => reverseEdgeDirection(id) },
       { label: "Delete relationship", danger: true, onClick: () => deleteEdge(id) },
     ];
@@ -861,6 +963,13 @@ export function InvestigationBoard({
           {counts.edges === 1 ? "relationship" : "relationships"}
         </p>
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowShortcuts(true)}
+            className="btn btn-sm whitespace-nowrap"
+            title="Board shortcuts"
+          >
+            Shortcuts
+          </button>
           <button onClick={toggleFullscreen} className="btn btn-sm whitespace-nowrap">
             {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
           </button>
@@ -946,6 +1055,12 @@ export function InvestigationBoard({
           </div>
         </div>
       </Modal>
+
+      <BoardShortcutsModal
+        open={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+        readOnly={readOnly}
+      />
 
       <ConfirmDialog
         open={confirmReset}
