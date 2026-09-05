@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "@xyflow/react/dist/style.css";
 
 :root {
   --color-bg: #f6f7f8;
@@ -618,89 +617,43 @@ dialog::backdrop {
   }
 }
 
-/* --- Investigation board (React Flow) ---
-   Alias the library's theme variables to ours instead of using its `colorMode`
-   prop: colorMode would need to read the app's theme on the client, which
-   differs from the server's first guess and causes a hydration warning. These
-   variables track --color-* automatically in both themes with no JS involved. */
+/* --- Investigation board (AntV X6) ---
+   Colors are passed straight to X6 as constructor/attrs options (grid dots,
+   edge stroke, selection highlight) rather than CSS custom properties, since
+   the library takes plain values there instead of exposing themeable CSS
+   vars — so there's very little to override here beyond our own mount points. */
 
-.react-flow {
-  --xy-background-color-default: var(--color-bg);
-  --xy-background-pattern-dots-color-default: var(--color-border);
-  --xy-background-pattern-lines-color-default: var(--color-border);
-  --xy-background-pattern-cross-color-default: var(--color-border);
-
-  --xy-edge-stroke-default: var(--color-border);
-  --xy-edge-stroke-selected-default: var(--color-accent);
-  --xy-edge-label-background-color-default: var(--color-surface);
-  --xy-edge-label-color-default: var(--color-text);
-
-  --xy-controls-button-background-color-default: var(--color-surface);
-  --xy-controls-button-background-color-hover-default: var(--color-surface-subtle);
-  --xy-controls-button-color-default: var(--color-text);
-  --xy-controls-button-color-hover-default: var(--color-text);
-  --xy-controls-button-border-color-default: var(--color-border);
-  --xy-controls-box-shadow-default: var(--card-shadow);
-
-  --xy-minimap-background-color-default: var(--color-surface);
-  --xy-minimap-node-background-color-default: var(--color-border);
-  --xy-minimap-mask-background-color-default: color-mix(in srgb, var(--color-text) 6%, transparent);
-
-  --xy-attribution-background-color-default: transparent;
-  --xy-handle-background-color-default: var(--color-border);
-  --xy-handle-border-color-default: var(--color-surface);
-  --xy-connectionline-stroke-default: var(--color-accent);
-  --xy-selection-background-color-default: var(--color-accent-soft);
-  --xy-selection-border-default: 1px dotted var(--color-accent);
+/* MiniMap plugin renders into this div — sized to match the `width`/`height`
+   passed to `new MiniMap({...})` in InvestigationBoard.tsx. */
+.board-minimap {
+  width: 160px;
+  height: 120px;
 }
 
-/* Give the library's own chrome the same card language as the rest of the
-   app (rounded, hairline border) instead of its default hard-edged panels. */
-.react-flow__controls {
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-}
-
-.react-flow__controls-button {
-  width: 32px;
-  height: 32px;
-}
-
-.react-flow__minimap {
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
+/* The plugin hard-codes its internal preview graph's own `background: false`
+   (overriding anything passed via `graphOptions`), which resolves to an opaque
+   white `.x6-widget-minimap` — clashing badly with dark theme. Only reachable
+   from here, as a CSS override of its real rendered class. */
+.board-minimap .x6-widget-minimap {
+  background-color: transparent;
 }
 
 @media (max-width: 640px) {
-  .react-flow__minimap {
+  .board-minimap {
     width: 96px;
     height: 72px;
   }
 }
 
-/* The reconnect hit-target at each edge's endpoint is invisible by default —
-   give it a visible ring on hover so dragging a connection to a different
-   entity is discoverable, not something you have to already know is there. */
-.react-flow__edge:hover .react-flow__edgeupdater {
-  fill: var(--color-accent);
-  fill-opacity: 0.18;
-  stroke: var(--color-accent);
-  stroke-width: 1.5px;
+/* The thin drag-to-connect ring around every entity card (EntityNode.tsx) —
+   invisible until hovered, so a calm board doesn't look framed by default. */
+.entity-node-magnet {
+  transition: box-shadow 120ms ease;
 }
 
-/* Drag this to bend a relationship line's curve manually — e.g. to route it
-   around an entity it would otherwise overlap. Hidden until the edge is
-   hovered/selected/actively dragged so it doesn't clutter a calm board. */
-.edge-bend-handle {
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-
-.react-flow__edge:hover .edge-bend-handle,
-.edge-bend-handle[data-active="true"] {
-  opacity: 1;
+.entity-node-magnet:hover {
+  box-shadow: inset 0 0 0 2px var(--color-accent-soft), inset 0 0 0 1px var(--color-accent);
+  cursor: crosshair;
 }
 
 /* The board's fixed h-[70vh] only fits its normal spot in the page; in the

@@ -8,7 +8,7 @@ import {
   type SimulationNodeDatum,
 } from "d3-force";
 import { prisma } from "@/lib/prisma";
-import type { Node, Edge } from "@xyflow/react";
+import { relationshipLabel } from "@/lib/edge-label-style";
 
 export type BoardEntity = {
   id: number;
@@ -21,12 +21,17 @@ export type BoardEntity = {
   createdAt: Date;
 };
 
+/** X6's own {name, args} anchor descriptor shape — opaque here, just persisted/replayed. */
+export type BoardAnchor = { name: string; args?: Record<string, unknown> } | null;
+
 export type BoardRelationship = {
   id: number;
   relationType: string;
   entityAId: number;
   entityBId: number;
-  bendOffset: number;
+  vertices: { x: number; y: number }[] | null;
+  sourceAnchor: BoardAnchor;
+  targetAnchor: BoardAnchor;
 };
 
 export type BoardNote = {
@@ -41,7 +46,21 @@ export type EntityNodeData = {
   value: string;
   source: string | null;
   noteCount: number;
+  /** Client-only, toggled at runtime — true while this is the guest's single
+   *  clicked entity (guests have no multi-select, so there's no other selection
+   *  signal to drive the card's ring from). Always absent/false from the server. */
+  active?: boolean;
+  /** Client-only — mirrors the board's readOnly prop so the node itself can hide
+   *  its drag-to-connect ring for viewers/guests. Always absent from the server. */
+  readOnly?: boolean;
 };
+
+// Fixed box size every entity card renders at — X6 nodes need explicit dimensions,
+// unlike a React Flow node's auto-sizing div. Tall enough for type chip + value +
+// an optional source line + an optional note-count line without clipping, plus a
+// margin all round for EntityNode's drag-to-connect ring (see .entity-node-magnet).
+export const NODE_WIDTH = 248;
+export const NODE_HEIGHT = 144;
 
 /** One Prisma query shared by the owner-side board route and the public share route. */
 export async function fetchCaseBoardData(caseId: number) {
@@ -67,7 +86,15 @@ export async function fetchCaseBoardData(caseId: number) {
         orderBy: { createdAt: "asc" },
       },
       relationships: {
-        select: { id: true, relationType: true, entityAId: true, entityBId: true, bendOffset: true },
+        select: {
+          id: true,
+          relationType: true,
+          entityAId: true,
+          entityBId: true,
+          vertices: true,
+          sourceAnchor: true,
+          targetAnchor: true,
+        },
       },
       notes: {
         orderBy: { createdAt: "desc" },
@@ -92,7 +119,15 @@ export async function fetchCaseBoardData(caseId: number) {
     noteCount: e._count.notes,
     createdAt: e.createdAt,
   }));
-  const relationships: BoardRelationship[] = found.relationships;
+  const relationships: BoardRelationship[] = found.relationships.map((r) => ({
+    id: r.id,
+    relationType: r.relationType,
+    entityAId: r.entityAId,
+    entityBId: r.entityBId,
+    vertices: (r.vertices as { x: number; y: number }[] | null) ?? null,
+    sourceAnchor: r.sourceAnchor as BoardAnchor,
+    targetAnchor: r.targetAnchor as BoardAnchor,
+  }));
   const notes: BoardNote[] = found.notes;
 
   return {
@@ -136,28 +171,60 @@ export function computeForceLayout(
   return positions;
 }
 
+/** X6 node JSON — consumed directly by `graph.addNode()` / `Graph.fromJSON()`. */
+export type BoardNodeShape = {
+  id: string;
+  shape: "entity-node";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  data: EntityNodeData;
+};
+
 export function entitiesToNodes(
   entities: BoardEntity[],
   positions?: Record<number, { x: number; y: number }>
-): Node<EntityNodeData>[] {
-  return entities.map((e) => ({
-    id: String(e.id),
-    type: "entity",
-    position:
+): BoardNodeShape[] {
+  return entities.map((e) => {
+    const pos =
       e.positionX !== null && e.positionY !== null
         ? { x: e.positionX, y: e.positionY }
-        : positions?.[e.id] ?? { x: 0, y: 0 },
-    data: { type: e.type, value: e.value, source: e.source, noteCount: e.noteCount },
-  }));
+        : positions?.[e.id] ?? { x: 0, y: 0 };
+    return {
+      id: String(e.id),
+      shape: "entity-node",
+      x: pos.x,
+      y: pos.y,
+      width: NODE_WIDTH,
+      height: NODE_HEIGHT,
+      data: { type: e.type, value: e.value, source: e.source, noteCount: e.noteCount },
+    };
+  });
 }
 
-export function relationshipsToEdges(relationships: BoardRelationship[]): Edge[] {
+/** A concrete (non-null) anchor descriptor, as X6's own `source`/`target` config expects. */
+export type BoardAnchorValue = { name: string; args?: Record<string, unknown> };
+
+/** X6 edge JSON — consumed directly by `graph.addEdge()` / `Graph.fromJSON()`. */
+export type BoardEdgeShape = {
+  id: string;
+  shape: "relationship-edge";
+  source: { cell: string; anchor?: BoardAnchorValue };
+  target: { cell: string; anchor?: BoardAnchorValue };
+  vertices: { x: number; y: number }[];
+  labels: ReturnType<typeof relationshipLabel>[];
+  data: { relationType: string };
+};
+
+export function relationshipsToEdges(relationships: BoardRelationship[]): BoardEdgeShape[] {
   return relationships.map((r) => ({
     id: String(r.id),
-    type: "relationship",
-    source: String(r.entityAId),
-    target: String(r.entityBId),
-    label: r.relationType,
-    data: { bendOffset: r.bendOffset },
+    shape: "relationship-edge",
+    source: { cell: String(r.entityAId), anchor: r.sourceAnchor ?? undefined },
+    target: { cell: String(r.entityBId), anchor: r.targetAnchor ?? undefined },
+    vertices: r.vertices ?? [],
+    labels: [relationshipLabel(r.relationType)],
+    data: { relationType: r.relationType },
   }));
 }

@@ -16,8 +16,9 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@antv/x6": "^3.1.8",
+    "@antv/x6-react-shape": "^3.0.1",
     "@prisma/client": "^6.19.3",
-    "@xyflow/react": "^12.11.6",
     "bcryptjs": "^3.0.3",
     "d3-force": "^3.0.0",
     "jose": "^6.2.10",

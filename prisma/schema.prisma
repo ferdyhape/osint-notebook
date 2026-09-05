@@ -57,10 +57,14 @@ model Relationship {
   entityBId    Int
   relationType String
   notes        String?  @db.Text
-  /// Perpendicular offset (px) of the curve's control point from the straight
-  /// line between the two entities — lets a user bend a line manually so it
-  /// clears an overlapping node instead of always taking React Flow's default arc.
-  bendOffset   Float    @default(0)
+  /// Array of {x,y} waypoints (X6's native edge-vertex format) a user has dragged
+  /// onto the curve — null/empty means a straight line between the two entities.
+  vertices     Json?
+  /// Pinned {name,args} X6 anchor descriptor for where this edge attaches to
+  /// entityA/entityB's boundary — null means "closest point to the line" (the
+  /// default), set once a user drags the endpoint onto a specific spot.
+  sourceAnchor Json?
+  targetAnchor Json?
   createdAt    DateTime @default(now())
 
   case    Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)

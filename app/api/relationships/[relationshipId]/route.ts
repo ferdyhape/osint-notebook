@@ -4,7 +4,8 @@ import { requireCaseAccess } from "@/lib/case-access";
 
 type Params = { params: Promise<{ relationshipId: string }> };
 
-/** Dragging an edge endpoint to a different node (React Flow's "reconnect") re-points it here. */
+/** Dragging an edge endpoint to a different node, or onto a different spot on the
+ *  same node's boundary, re-points/re-anchors it here; dragging a waypoint updates `vertices`. */
 export async function PATCH(request: NextRequest, { params }: Params) {
   const { relationshipId } = await params;
   const id = Number(relationshipId);
@@ -16,7 +17,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!access.ok) return access.response;
 
   const body = await request.json();
-  const { entityAId, entityBId, relationType, bendOffset } = body;
+  const { entityAId, entityBId, relationType, vertices, sourceAnchor, targetAnchor } = body;
 
   if (entityAId !== undefined && entityBId !== undefined && Number(entityAId) === Number(entityBId)) {
     return NextResponse.json({ error: "Two distinct entities are required" }, { status: 400 });
@@ -35,7 +36,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       ...(entityAId !== undefined && { entityAId: Number(entityAId) }),
       ...(entityBId !== undefined && { entityBId: Number(entityBId) }),
       ...(relationType !== undefined && { relationType }),
-      ...(bendOffset !== undefined && { bendOffset: Number(bendOffset) }),
+      ...(vertices !== undefined && { vertices }),
+      ...(sourceAnchor !== undefined && { sourceAnchor }),
+      ...(targetAnchor !== undefined && { targetAnchor }),
     },
   });
   return NextResponse.json(updated);
