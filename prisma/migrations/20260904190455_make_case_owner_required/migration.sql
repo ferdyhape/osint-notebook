@@ -5,10 +5,10 @@
 
 */
 -- DropForeignKey
-ALTER TABLE `case` DROP FOREIGN KEY `Case_userId_fkey`;
+ALTER TABLE `Case` DROP FOREIGN KEY `Case_userId_fkey`;
 
 -- AlterTable
-ALTER TABLE `case` MODIFY `userId` INTEGER NOT NULL;
+ALTER TABLE `Case` MODIFY `userId` INTEGER NOT NULL;
 
 -- AddForeignKey
 ALTER TABLE `Case` ADD CONSTRAINT `Case_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -1,12 +1,12 @@
 -- AlterTable
-ALTER TABLE `case` ADD COLUMN `userId` INTEGER NULL;
+ALTER TABLE `Case` ADD COLUMN `userId` INTEGER NULL;
 
 -- AlterTable
-ALTER TABLE `entity` ADD COLUMN `positionX` DOUBLE NULL,
+ALTER TABLE `Entity` ADD COLUMN `positionX` DOUBLE NULL,
     ADD COLUMN `positionY` DOUBLE NULL;
 
 -- AlterTable
-ALTER TABLE `user` ADD COLUMN `emailVerifiedAt` DATETIME(3) NULL;
+ALTER TABLE `User` ADD COLUMN `emailVerifiedAt` DATETIME(3) NULL;
 
 -- CreateTable
 CREATE TABLE `CaseShare` (

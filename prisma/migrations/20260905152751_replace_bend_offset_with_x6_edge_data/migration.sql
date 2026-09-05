@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `relationship`
+ALTER TABLE `Relationship`
     DROP COLUMN `bendOffset`,
     ADD COLUMN `vertices` JSON NULL,
     ADD COLUMN `sourceAnchor` JSON NULL,
