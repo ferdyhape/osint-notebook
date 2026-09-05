@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { detectEntities } from "@/lib/detect";
+import { getCurrentUser } from "@/lib/auth";
+import { getCaseAccess } from "@/lib/case-access";
 import { EntityTable } from "@/components/EntityTable";
 import { NoteTimeline } from "@/components/NoteTimeline";
 import { EntityFormModal } from "@/components/EntityFormModal";
@@ -10,6 +12,8 @@ import { CaseFormModal } from "@/components/CaseFormModal";
 import { DeleteCaseButton } from "@/components/DeleteCaseButton";
 import { DetectedEntitiesBanner } from "@/components/DetectedEntitiesBanner";
 import { ExportMenu } from "@/components/ExportMenu";
+import { ShareButton } from "@/components/ShareButton";
+import { CaseViewTabs } from "@/components/board/CaseViewTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +24,12 @@ export default async function CaseDetailPage({
 }) {
   const { caseId } = await params;
   const id = Number(caseId);
+
+  const user = await getCurrentUser();
+  const role = user ? await getCaseAccess(id, user) : null;
+  if (!role) notFound();
+  const canEdit = role === "owner" || role === "editor";
+  const isOwner = role === "owner";
 
   const [found, combinableRules] = await Promise.all([
     prisma.case.findUnique({
@@ -58,36 +68,39 @@ export default async function CaseDetailPage({
             <p className="text-sm text-muted mt-1.5 max-w-xl">{found.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <CaseViewTabs detailHref={`/cases/${id}`} boardHref={`/cases/${id}/board`} active="detail" />
           <ExportMenu caseId={id} />
-          <CaseFormModal
-            trigger="header"
-            initial={{
-              id: found.id,
-              name: found.name,
-              description: found.description,
-              status: found.status,
-            }}
-          />
-          <DeleteCaseButton caseId={id} caseName={found.name} />
+          {isOwner && <ShareButton caseId={id} />}
+          {isOwner && (
+            <CaseFormModal
+              trigger="header"
+              initial={{
+                id: found.id,
+                name: found.name,
+                description: found.description,
+                status: found.status,
+              }}
+            />
+          )}
+          {isOwner && <DeleteCaseButton caseId={id} caseName={found.name} />}
         </div>
       </div>
 
-      <DetectedEntitiesBanner caseId={id} detected={detected} />
+      {canEdit && <DetectedEntitiesBanner caseId={id} detected={detected} />}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="section-title">
             Entities{" "}
-            <span className="font-data text-xs text-muted font-normal">
-              {found.entities.length}
-            </span>
+            <span className="text-xs text-muted font-normal">{found.entities.length}</span>
           </h2>
-          <EntityFormModal caseId={id} />
+          {canEdit && <EntityFormModal caseId={id} />}
         </div>
         <EntityTable
           caseId={id}
           combinableRules={combinableRules}
+          readOnly={!canEdit}
           entities={found.entities.map((e) => ({
             id: e.id,
             type: e.type,
@@ -104,9 +117,10 @@ export default async function CaseDetailPage({
             Notes{" "}
             <span className="font-data text-xs text-muted font-normal">{found.notes.length}</span>
           </h2>
-          <AddNoteModalButton caseId={id} />
+          {canEdit && <AddNoteModalButton caseId={id} />}
         </div>
         <NoteTimeline
+          readOnly={!canEdit}
           notes={found.notes.map((n) => ({
             id: n.id,
             content: n.content,

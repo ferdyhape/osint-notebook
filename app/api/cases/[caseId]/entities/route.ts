@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizeType } from "@/lib/pivot";
+import { requireCaseAccess } from "@/lib/case-access";
 
 type Params = { params: Promise<{ caseId: string }> };
 
 export async function GET(request: NextRequest, { params }: Params) {
   const { caseId } = await params;
+  const id = Number(caseId);
+  const access = await requireCaseAccess(id, "viewer");
+  if (!access.ok) return access.response;
+
   const type = request.nextUrl.searchParams.get("type");
 
   const entities = await prisma.entity.findMany({
     where: {
-      caseId: Number(caseId),
+      caseId: id,
       ...(type ? { type } : {}),
     },
     orderBy: { createdAt: "desc" },
@@ -20,6 +25,10 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 export async function POST(request: NextRequest, { params }: Params) {
   const { caseId } = await params;
+  const id = Number(caseId);
+  const access = await requireCaseAccess(id, "editor");
+  if (!access.ok) return access.response;
+
   const body = await request.json();
   const { type, value, attributes, source, relatedToEntityId, relationType } = body;
 
@@ -30,34 +39,45 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "value is required" }, { status: 400 });
   }
 
-  const entity = await prisma.entity.create({
-    data: {
-      caseId: Number(caseId),
-      type: normalizeType(type),
-      value: value.trim(),
-      attributes: attributes ?? undefined,
-      source: source ?? null,
-    },
+  const entity = await prisma.$transaction(async (tx) => {
+    const created = await tx.entity.create({
+      data: {
+        caseId: id,
+        type: normalizeType(type),
+        value: value.trim(),
+        attributes: attributes ?? undefined,
+        source: source ?? null,
+      },
+    });
+
+    if (relatedToEntityId) {
+      await tx.relationship.create({
+        data: {
+          caseId: id,
+          entityAId: Number(relatedToEntityId),
+          entityBId: created.id,
+          relationType: relationType || "found from",
+        },
+      });
+
+      const source = await tx.entity.findUnique({
+        where: { id: Number(relatedToEntityId) },
+        select: { type: true, value: true },
+      });
+
+      await tx.note.create({
+        data: {
+          caseId: id,
+          entityId: created.id,
+          content: source
+            ? `Found by pivoting from "${source.value}" (${source.type}).`
+            : "Found by pivoting from a related entity.",
+        },
+      });
+    }
+
+    return created;
   });
-
-  if (relatedToEntityId) {
-    await prisma.relationship.create({
-      data: {
-        caseId: Number(caseId),
-        entityAId: Number(relatedToEntityId),
-        entityBId: entity.id,
-        relationType: relationType || "found from",
-      },
-    });
-
-    await prisma.note.create({
-      data: {
-        caseId: Number(caseId),
-        entityId: entity.id,
-        content: `Found by pivoting from entity #${relatedToEntityId}.`,
-      },
-    });
-  }
 
   return NextResponse.json(entity, { status: 201 });
 }

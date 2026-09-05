@@ -1,3 +1,27 @@
+import "server-only";
+import { prisma } from "@/lib/prisma";
+
+/** The one query both the authenticated export route and the public share export route use. */
+export async function getCaseExportData(caseId: number): Promise<ExportCase | null> {
+  return prisma.case.findUnique({
+    where: { id: caseId },
+    include: {
+      entities: { orderBy: { createdAt: "asc" } },
+      relationships: {
+        orderBy: { createdAt: "asc" },
+        include: {
+          entityA: { select: { value: true, type: true } },
+          entityB: { select: { value: true, type: true } },
+        },
+      },
+      notes: {
+        orderBy: { createdAt: "asc" },
+        include: { entity: { select: { value: true, type: true } } },
+      },
+    },
+  });
+}
+
 /** Shapes the export needs — a subset of the Prisma rows, so this file stays pure. */
 export type ExportEntity = {
   id: number;

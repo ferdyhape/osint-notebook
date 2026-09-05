@@ -52,14 +52,10 @@ export function PivotRulesTable({ rules }: { rules: PivotRuleValues[] }) {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="item-title">{r.title}</p>
-                      <span className="font-data text-[0.6875rem] text-muted uppercase">
+                      <span className="eyebrow">
                         {r.category} · {r.actionType}
                       </span>
-                      {r.combinable && (
-                        <span className="font-data text-[0.6875rem] uppercase text-accent bg-accent-soft rounded-full px-2 py-0.5">
-                          combinable
-                        </span>
-                      )}
+                      {r.combinable && <span className="badge badge-accent">combinable</span>}
                     </div>
                     <p className="text-sm text-muted mt-0.5">{r.description}</p>
                     {r.urlTemplate && (

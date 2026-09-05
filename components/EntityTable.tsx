@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { PivotRule } from "@prisma/client";
-import { resolvePivotSuggestion, type CombineOperator } from "@/lib/pivot";
+import { resolvePivotSuggestion, isUrlValue, type CombineOperator } from "@/lib/pivot";
 import { EntityFormModal } from "@/components/EntityFormModal";
 import { DeleteEntityButton } from "@/components/DeleteEntityButton";
+import { CopyButton } from "@/components/CopyButton";
 
 type EntityRow = {
   id: number;
@@ -19,10 +20,15 @@ export function EntityTable({
   caseId,
   entities,
   combinableRules,
+  readOnly = false,
+  linkToDetail = true,
 }: {
   caseId: number;
   entities: EntityRow[];
   combinableRules: PivotRule[];
+  readOnly?: boolean;
+  /** False for the anonymous share view — that page has no authenticated entity-detail route to link to. */
+  linkToDetail?: boolean;
 }) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [operator, setOperator] = useState<CombineOperator>("AND");
@@ -48,15 +54,9 @@ export function EntityTable({
         <div className="card bg-accent-soft px-4 py-3 flex items-center gap-3 flex-wrap">
           <span className="text-xs font-medium">{selectedValues.length} selected</span>
 
-          <div className="flex rounded-md border border-border overflow-hidden">
+          <div className="seg">
             {(["AND", "OR"] as const).map((op) => (
-              <button
-                key={op}
-                onClick={() => setOperator(op)}
-                className={`font-data text-xs px-2.5 py-1 transition-colors ${
-                  operator === op ? "bg-accent text-on-accent" : "bg-surface text-muted hover:text-text"
-                }`}
-              >
+              <button key={op} onClick={() => setOperator(op)} className="seg-btn" data-active={operator === op}>
                 {op}
               </button>
             ))}
@@ -119,24 +119,47 @@ export function EntityTable({
                   <span className="badge">{e.type}</span>
                 </td>
                 <td className="px-4 py-2.5">
-                  <Link
-                    href={`/cases/${caseId}/entities/${e.id}`}
-                    className="font-data text-[0.8125rem] font-medium hover:text-accent"
-                  >
-                    {e.value}
-                  </Link>
+                  <div className="flex items-center gap-1.5">
+                    {linkToDetail ? (
+                      <Link
+                        href={`/cases/${caseId}/entities/${e.id}`}
+                        className="font-data text-[0.8125rem] font-medium hover:text-accent truncate"
+                      >
+                        {e.value}
+                      </Link>
+                    ) : (
+                      <span className="font-data text-[0.8125rem] font-medium truncate">{e.value}</span>
+                    )}
+                    {isUrlValue(e.value) && (
+                      <a
+                        href={e.value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted hover:text-accent shrink-0"
+                        title="Open link"
+                        aria-label="Open link"
+                      >
+                        ↗
+                      </a>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-2.5 text-muted">{e.source || "—"}</td>
-                <td className="px-4 py-2.5 text-muted font-data text-xs whitespace-nowrap">
+                <td className="px-4 py-2.5 text-muted text-xs whitespace-nowrap">
                   {new Date(e.createdAt).toLocaleDateString("en-GB")}
                 </td>
                 <td className="px-3 py-2.5">
                   <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    <EntityFormModal
-                      caseId={caseId}
-                      initial={{ id: e.id, type: e.type, value: e.value, source: e.source }}
-                    />
-                    <DeleteEntityButton entityId={e.id} entityValue={e.value} />
+                    <CopyButton value={e.value} className="btn btn-row" />
+                    {!readOnly && (
+                      <>
+                        <EntityFormModal
+                          caseId={caseId}
+                          initial={{ id: e.id, type: e.type, value: e.value, source: e.source }}
+                        />
+                        <DeleteEntityButton entityId={e.id} entityValue={e.value} />
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

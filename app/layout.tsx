@@ -1,19 +1,17 @@
 import type { Metadata } from "next";
-import { Archivo, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { NavBar } from "@/components/NavBar";
+import { VerifyBanner } from "@/components/VerifyBanner";
 import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
-const archivo = Archivo({
-  variable: "--font-archivo",
+// One grotesque sans for both headings and body — the standard, unambiguously
+// professional choice for a data-dense enterprise tool (same family GitHub,
+// Vercel, and Linear build their dashboards on). Variable weight, so every
+// step of the type scale is a real optical weight, not a synthetic bold.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
-});
-
-const plexSans = IBM_Plex_Sans({
-  variable: "--font-plex-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -44,13 +42,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${archivo.variable} ${plexSans.variable} ${plexMono.variable}`}
+      className={`${inter.variable} ${plexMono.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-screen flex flex-col">
         <NavBar user={user} />
+        {user && !user.emailVerifiedAt && <VerifyBanner />}
         <main className="flex-1 mx-auto w-full max-w-5xl px-6 py-10">{children}</main>
         <footer className="border-t border-border">
           <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between gap-4 text-xs text-muted">

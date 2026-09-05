@@ -11,7 +11,7 @@ type NoteRow = {
   entity?: { id: number; type: string; value: string } | null;
 };
 
-export function NoteTimeline({ notes }: { notes: NoteRow[] }) {
+export function NoteTimeline({ notes, readOnly = false }: { notes: NoteRow[]; readOnly?: boolean }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
@@ -99,17 +99,19 @@ export function NoteTimeline({ notes }: { notes: NoteRow[] }) {
               <>
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{n.content}</p>
-                  <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    <button onClick={() => startEdit(n)} className="btn btn-row">
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => setConfirmId(n.id)}
-                      className="btn btn-row btn-row-danger"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  {!readOnly && (
+                    <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                      <button onClick={() => startEdit(n)} className="btn btn-row">
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setConfirmId(n.id)}
+                        className="btn btn-row btn-row-danger"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-2 flex items-center gap-2 text-xs text-muted">
                   <span className="font-data">{new Date(n.createdAt).toLocaleString("en-GB")}</span>

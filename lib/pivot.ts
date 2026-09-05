@@ -48,3 +48,8 @@ export const ANY_ENTITY_TYPE = "any";
 export function normalizeType(type: string) {
   return type.trim().toLowerCase();
 }
+
+/** True when a value is an absolute http(s) URL worth rendering as a real link. */
+export function isUrlValue(value: string) {
+  return /^https?:\/\//i.test(value.trim());
+}
