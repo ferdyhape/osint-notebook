@@ -1091,6 +1091,22 @@ export function InvestigationBoard({
             onClear={clearSelection}
           />
         )}
+
+        {/* Inside the canvas, not beside it: when this div is the fullscreen
+         *  element the browser renders nothing outside it, so a right-click menu
+         *  mounted as its sibling simply never appeared in fullscreen. It's still
+         *  `position: fixed` against the viewport either way — nothing here
+         *  establishes a containing block for it, so `overflow-hidden` doesn't
+         *  clip it out of windowed mode. (The <dialog>s below are fine where they
+         *  are: showModal() puts them in the top layer, above the fullscreen element.) */}
+        {contextMenu && (
+          <BoardContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            items={contextMenuItems}
+            onClose={() => setContextMenu(null)}
+          />
+        )}
       </div>
 
       <Modal
@@ -1144,14 +1160,6 @@ export function InvestigationBoard({
         onConfirm={confirmDeleteEntityAction}
       />
 
-      {contextMenu && (
-        <BoardContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          items={contextMenuItems}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
     </div>
   );
 }
