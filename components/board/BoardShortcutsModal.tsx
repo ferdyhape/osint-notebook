@@ -7,6 +7,7 @@ const NAVIGATION: Shortcut[] = [
   { keys: "Shift + scroll", action: "Pan left and right" },
   { keys: "Space + drag", action: "Pan in any direction" },
   { keys: "Ctrl + scroll, or Ctrl + = / −", action: "Zoom in and out" },
+  { keys: "Arrow keys", action: "Pan step by step, with nothing selected" },
   { keys: "Ctrl + Shift + H", action: "Fit the whole board on screen" },
 ];
 
@@ -14,8 +15,8 @@ const EDITING: Shortcut[] = [
   { keys: "Drag on empty canvas", action: "Select several entities" },
   { keys: "Ctrl + A", action: "Select every entity" },
   { keys: "Ctrl + C", action: "Copy the selected entities' values" },
-  { keys: "Arrow keys", action: "Nudge the selection a pixel" },
-  { keys: "Shift + arrow keys", action: "Nudge the selection a grid step" },
+  { keys: "Arrow keys", action: "Nudge the selected entities a pixel" },
+  { keys: "Shift + arrow keys", action: "Nudge the selected entities a grid step" },
   { keys: "Ctrl + Z / Ctrl + Shift + Z", action: "Undo / redo a move or a line change" },
   { keys: "Delete", action: "Delete the selected relationship" },
   { keys: "Right-click", action: "Options for an entity or a relationship" },

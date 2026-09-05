@@ -73,6 +73,18 @@ function subscribeHint(onChange: () => void) {
   return () => hintListeners.delete(onChange);
 }
 
+// How far the arrow keys move the viewport when nothing is selected.
+const PAN_STEP = 40;
+const PAN_STEP_LARGE = 200;
+
+/** True when a keystroke is aimed at somewhere text is being entered — those are
+ *  never board shortcuts, whichever key they are. */
+function isTypingTarget(target: EventTarget | null) {
+  const el = target as HTMLElement | null;
+  if (!el || typeof el.tagName !== "string") return false;
+  return el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable === true;
+}
+
 // Only these node/edge properties go on the undo stack. Adding or deleting a
 // cell is a database write with its own generated id — undoing that in the
 // canvas alone would silently desync the board from the case, so creation and
@@ -488,6 +500,7 @@ export function InvestigationBoard({
     // even plain cursor movement behave like the mouse button was stuck down.)
     let host: HTMLDivElement | null = null;
     let minimapHost: HTMLDivElement | null = null;
+    let detachSpaceKeys: (() => void) | null = null;
 
     function setup() {
       if (cancelled) return;
@@ -664,7 +677,18 @@ export function InvestigationBoard({
         // shortcut works without having clicked the canvas first. X6's own guard
         // already ignores keystrokes aimed at an input, so typing a relationship
         // name or a note is unaffected.
-        g.use(new Keyboard({ enabled: true, global: true }));
+        g.use(
+          new Keyboard({
+            enabled: true,
+            global: true,
+            // Binding on the document means X6's own "is this a graph event?"
+            // check passes for *every* keystroke on the page — including ones
+            // aimed at a text field, where Ctrl+A would otherwise stop selecting
+            // the text you're typing. Anything typed into a field, or pressed
+            // while a modal is open, is not a board shortcut.
+            guard: (e) => !isTypingTarget(e.target) && !document.querySelector("dialog[open]"),
+          })
+        );
         g.bindKey(["ctrl+z", "meta+z"], () => {
           g.undo();
           return false;
@@ -704,8 +728,10 @@ export function InvestigationBoard({
           safeZoomToFit(g);
           return false;
         });
-        // Nudge the selection, draw.io style: a pixel at a time for fine
-        // alignment, a grid step with shift held.
+        // Arrows nudge the selection a pixel at a time (a grid step with shift)
+        // for fine alignment — and with nothing selected they walk the viewport
+        // instead, so the board can be moved from the keyboard without having to
+        // pick something up first.
         for (const [keys, dx, dy] of [
           [["up", "shift+up"], 0, -1],
           [["down", "shift+down"], 0, 1],
@@ -714,7 +740,11 @@ export function InvestigationBoard({
         ] as const) {
           g.bindKey([...keys], (e) => {
             const nodes = g.getSelectedCells().filter((cell) => cell.isNode());
-            if (!nodes.length) return;
+            if (!nodes.length) {
+              const pan = e.shiftKey ? PAN_STEP_LARGE : PAN_STEP;
+              g.translateBy(-dx * pan, -dy * pan);
+              return false;
+            }
             const step = e.shiftKey ? BOARD_GRID_SIZE : 1;
             for (const node of nodes) {
               (node as Node).translate(dx * step, dy * step);
@@ -727,7 +757,38 @@ export function InvestigationBoard({
         // neighbor's edge/center when within a few pixels, so tidying up the
         // board doesn't come down to eyeballing it.
         g.use(new Snapline({ enabled: true, sharp: true, tolerance: 8 }));
+
       }
+
+      // Space is the pan modifier, but X6's rubberband decides whether a blank
+      // drag is a marquee by checking alt/ctrl/meta/shift only — space isn't
+      // among them, so holding it started a pan *and* a selection box at the
+      // same time. Muting the rubberband for exactly as long as space is held is
+      // what makes the two mutually exclusive. (Guests have no rubberband to
+      // mute — re-enabling one on their behalf would hand them a selection tool
+      // they're not meant to have — but they pan with space just the same, so
+      // swallowing the keypress applies to everyone.)
+      const selection = readOnly ? null : g.getPlugin<Selection>("selection");
+      const onSpaceDown = (e: KeyboardEvent) => {
+        if (e.code !== "Space" || e.repeat || isTypingTarget(e.target)) return;
+        // Space would otherwise page the window down underneath the board.
+        e.preventDefault();
+        selection?.disableRubberband();
+      };
+      const releaseSpace = () => selection?.enableRubberband();
+      const onSpaceUp = (e: KeyboardEvent) => {
+        if (e.code === "Space") releaseSpace();
+      };
+      document.addEventListener("keydown", onSpaceDown);
+      document.addEventListener("keyup", onSpaceUp);
+      // Alt-tabbing away mid-pan means the keyup never arrives, which would
+      // otherwise leave marquee select switched off for good.
+      window.addEventListener("blur", releaseSpace);
+      detachSpaceKeys = () => {
+        document.removeEventListener("keydown", onSpaceDown);
+        document.removeEventListener("keyup", onSpaceUp);
+        window.removeEventListener("blur", releaseSpace);
+      };
 
       // X6's own `grid` background ties dot-spacing to the snap-to-grid
       // increment (disabled above), so the dots are drawn by hand instead —
@@ -890,6 +951,7 @@ export function InvestigationBoard({
     return () => {
       cancelled = true;
       cancelAnimationFrame(pollId);
+      detachSpaceKeys?.();
       setGraph(null);
       const g = currentGraph;
       if (!g) return; // setup() never got past waiting for a real container size
