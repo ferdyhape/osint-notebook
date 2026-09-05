@@ -10,7 +10,7 @@ export function TrailDiagram() {
       viewBox="0 0 700 300"
       className="w-full h-auto"
       role="img"
-      aria-label="A domain linked to an email address it was found from, and to a GitHub account belonging to the same person."
+      aria-label="A domain linked to an email address it was found from, and to a username belonging to the same person."
     >
       <defs>
         <marker
@@ -45,9 +45,9 @@ export function TrailDiagram() {
       <EdgeLabel x={334} y={92} width={82} text="found from" />
       <EdgeLabel x={334} y={204} width={108} text="same person as" />
 
-      <EntityCard x={10} y={112} code="DO" type="DOMAIN" value="gameloft.com" chip={1} />
-      <EntityCard x={470} y={14} code="EM" type="EMAIL" value="ferdy@gameloft.com" chip={3} />
-      <EntityCard x={470} y={208} code="GI" type="GITHUB" value="ferdyhape" chip={5} />
+      <EntityCard x={10} y={112} code="DO" type="DOMAIN" value="example.com" chip={1} />
+      <EntityCard x={470} y={14} code="EM" type="EMAIL" value="press@example.com" chip={3} />
+      <EntityCard x={470} y={208} code="US" type="USERNAME" value="example_user" chip={5} />
     </svg>
   );
 }

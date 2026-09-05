@@ -26,7 +26,7 @@ const STEPS = [
 
 export function LandingPage() {
   return (
-    <div className="space-y-20">
+    <div className="space-y-14">
       {/* Structured data: tells Google this URL is a piece of software, not an
           article, which is what earns the richer application result. */}
       <script
@@ -46,62 +46,63 @@ export function LandingPage() {
         }}
       />
 
-      <section className="pt-4">
-        <p className="eyebrow">OSINT case notebook</p>
-        <h1 className="page-title mt-2 max-w-2xl text-balance">
-          Every lead you found, and how you got there.
-        </h1>
-        <p className="text-base text-muted mt-4 max-w-xl leading-relaxed">
-          An OSINT trail is only as good as the reasoning behind it. Keep the entities, the sources
-          and the links between them in one case file — and get told where to look next.
-        </p>
-        <div className="flex items-center gap-2.5 mt-7">
-          <Link href="/register" className="btn btn-primary">
-            Create an account
-          </Link>
-          <Link href="/login" className="btn">
-            Sign in
-          </Link>
+      {/* Two columns from `lg` up: the copy is only ever ~30rem wide, so stacking
+       *  the diagram under it left the right half of the page empty and pushed
+       *  everything else below the fold. */}
+      <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-12">
+        <div>
+          <p className="eyebrow">OSINT case notebook</p>
+          <h1 className="page-title mt-2 text-balance">Every lead you found, and how you got there.</h1>
+          <p className="text-base text-muted mt-3.5 leading-relaxed">
+            An OSINT trail is only as good as the reasoning behind it. Keep the entities, the sources
+            and the links between them in one case file — and get told where to look next.
+          </p>
+          <div className="flex items-center gap-2.5 mt-6">
+            <Link href="/register" className="btn btn-primary">
+              Create an account
+            </Link>
+            <Link href="/login" className="btn">
+              Sign in
+            </Link>
+          </div>
         </div>
-      </section>
 
-      <section aria-labelledby="trail-heading">
-        <h2 id="trail-heading" className="sr-only">
-          How a case looks
-        </h2>
-        <div className="card p-5 sm:p-8 board-grid-bg">
-          <TrailDiagram />
+        <div>
+          <div className="card board-grid-bg p-4 sm:p-6">
+            <TrailDiagram />
+          </div>
+          <p className="text-xs text-muted mt-2.5">
+            A case on the board: the entities you have recorded, and the relationship you observed
+            between each pair — labelled, directional, and yours to rearrange.
+          </p>
         </div>
-        <p className="text-xs text-muted mt-3">
-          A case on the board: entities you have recorded, and the relationship you observed between
-          each pair — labelled, directional, and yours to rearrange.
-        </p>
       </section>
 
       <section aria-labelledby="how-heading">
         <h2 id="how-heading" className="section-title">
           How it works
         </h2>
-        <ol className="mt-6 grid gap-5 sm:grid-cols-2">
+        <ol className="mt-4 grid gap-3 sm:grid-cols-2">
           {STEPS.map((step, index) => (
-            <li key={step.title} className="card p-5">
+            <li key={step.title} className="card p-4">
               <span className="font-data text-xs text-accent">
                 {String(index + 1).padStart(2, "0")}
               </span>
-              <h3 className="item-title mt-2">{step.title}</h3>
-              <p className="text-sm text-muted mt-1.5 leading-relaxed">{step.body}</p>
+              <h3 className="item-title mt-1.5">{step.title}</h3>
+              <p className="text-sm text-muted mt-1 leading-relaxed">{step.body}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      <section className="card p-6 sm:p-8">
-        <h2 className="section-title">Start a case</h2>
-        <p className="text-sm text-muted mt-2 max-w-lg">
-          Free, self-hosted, and no third-party API keys to arrange. Create an account and open your
-          first case.
-        </p>
-        <div className="flex items-center gap-2.5 mt-5">
+      <section className="card p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="section-title">Start a case</h2>
+          <p className="text-sm text-muted mt-1.5">
+            Free, self-hosted, and no third-party API keys to arrange.
+          </p>
+        </div>
+        <div className="flex items-center gap-2.5 shrink-0">
           <Link href="/register" className="btn btn-primary">
             Create an account
           </Link>

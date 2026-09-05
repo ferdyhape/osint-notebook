@@ -55,7 +55,7 @@ export default function OpengraphImage() {
 
         {/* One relationship, drawn the way the board draws it. */}
         <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-          <Card type="DOMAIN" value="gameloft.com" />
+          <Card type="DOMAIN" value="example.com" />
           <div style={{ display: "flex", alignItems: "center", width: 190 }}>
             <div style={{ height: 2, flex: 1, background: "#334155" }} />
             <div
@@ -82,7 +82,7 @@ export default function OpengraphImage() {
               }}
             />
           </div>
-          <Card type="GITHUB" value="ferdyhape" />
+          <Card type="USERNAME" value="example_user" />
         </div>
       </div>
     ),
