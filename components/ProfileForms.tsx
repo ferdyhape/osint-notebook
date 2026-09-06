@@ -120,7 +120,11 @@ export function ChangePasswordForm() {
           className="field"
         />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Stacked, not side-by-side: `sm:` reacts to the viewport's width, not
+       *  this card's — and once the page itself splits into two columns, this
+       *  card is far narrower than the 640px breakpoint assumes, so forcing
+       *  two fields into it here read as a *third* column across the page. */}
+      <div className="space-y-3">
         <div>
           <label className="label">New password</label>
           <input
