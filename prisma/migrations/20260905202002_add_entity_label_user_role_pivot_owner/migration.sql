@@ -1,11 +1,11 @@
 -- AlterTable
-ALTER TABLE `entity` ADD COLUMN `label` VARCHAR(191) NULL;
+ALTER TABLE `Entity` ADD COLUMN `label` VARCHAR(191) NULL;
 
 -- AlterTable
-ALTER TABLE `pivotrule` ADD COLUMN `createdById` INTEGER NULL;
+ALTER TABLE `PivotRule` ADD COLUMN `createdById` INTEGER NULL;
 
 -- AlterTable
-ALTER TABLE `user` ADD COLUMN `role` VARCHAR(191) NOT NULL DEFAULT 'user';
+ALTER TABLE `User` ADD COLUMN `role` VARCHAR(191) NOT NULL DEFAULT 'user';
 
 -- CreateIndex
 CREATE INDEX `PivotRule_createdById_idx` ON `PivotRule`(`createdById`);
