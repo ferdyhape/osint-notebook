@@ -1,5 +1,7 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
+
 export type Theme = "light" | "dark";
 
 const MEDIA = "(prefers-color-scheme: dark)";
@@ -30,4 +32,21 @@ export function subscribeTheme(onChange: () => void) {
     listeners.delete(onChange);
     media.removeEventListener("change", onChange);
   };
+}
+
+/** The state + toggle behind every theme control in the app — `ThemeSwitch`
+ *  (the menu-row switch for signed-in users) and `ThemeToggleButton` (the
+ *  standalone icon for guests) each render this differently, but neither
+ *  should re-derive `isDark` or the toggle itself. `theme` is `null` until
+ *  hydration, so a control can render its "undecided" state rather than ever
+ *  contradicting the page it just hydrated into. */
+export function useThemeToggle() {
+  const theme = useSyncExternalStore<Theme | null>(subscribeTheme, readTheme, () => null);
+  const isDark = theme === "dark";
+
+  function toggle() {
+    setTheme(readTheme() === "dark" ? "light" : "dark");
+  }
+
+  return { theme, isDark, toggle };
 }

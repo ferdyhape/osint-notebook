@@ -13,7 +13,12 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const notes = await prisma.note.findMany({
     where: { caseId: id },
     orderBy: { createdAt: "desc" },
-    include: { entity: true },
+    select: {
+      id: true,
+      content: true,
+      createdAt: true,
+      entity: { select: { id: true, type: true, value: true, label: true } },
+    },
   });
   return NextResponse.json(notes);
 }

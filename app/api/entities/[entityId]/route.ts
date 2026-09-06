@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizeType } from "@/lib/pivot";
-import { requireCaseAccess } from "@/lib/case-access";
+import { requireCaseAccess, resolveCaseId } from "@/lib/case-access";
 
 type Params = { params: Promise<{ entityId: string }> };
-
-async function resolveCaseId(entityId: number) {
-  const entity = await prisma.entity.findUnique({ where: { id: entityId }, select: { caseId: true } });
-  return entity?.caseId ?? null;
-}
 
 export async function GET(_request: NextRequest, { params }: Params) {
   const { entityId } = await params;
   const id = Number(entityId);
-  const caseId = await resolveCaseId(id);
+  const caseId = await resolveCaseId(prisma.entity, id);
   if (!caseId) return NextResponse.json({ error: "not found" }, { status: 404 });
   const access = await requireCaseAccess(caseId, "viewer");
   if (!access.ok) return access.response;
@@ -35,7 +30,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
 export async function PATCH(request: NextRequest, { params }: Params) {
   const { entityId } = await params;
   const id = Number(entityId);
-  const caseId = await resolveCaseId(id);
+  const caseId = await resolveCaseId(prisma.entity, id);
   if (!caseId) return NextResponse.json({ error: "not found" }, { status: 404 });
   const access = await requireCaseAccess(caseId, "editor");
   if (!access.ok) return access.response;
@@ -61,7 +56,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const { entityId } = await params;
   const id = Number(entityId);
-  const caseId = await resolveCaseId(id);
+  const caseId = await resolveCaseId(prisma.entity, id);
   if (!caseId) return NextResponse.json({ error: "not found" }, { status: 404 });
   const access = await requireCaseAccess(caseId, "editor");
   if (!access.ok) return access.response;

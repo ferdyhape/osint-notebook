@@ -1,16 +1,10 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { readTheme, setTheme, subscribeTheme, type Theme } from "@/lib/theme";
+import { useThemeToggle } from "@/lib/theme";
 
 /** A standalone icon toggle for pages with no account menu to tuck it into — guest-facing pages. */
 export function ThemeToggleButton() {
-  const theme = useSyncExternalStore<Theme | null>(subscribeTheme, readTheme, () => null);
-  const isDark = theme === "dark";
-
-  function toggle() {
-    setTheme(readTheme() === "dark" ? "light" : "dark");
-  }
+  const { isDark, toggle } = useThemeToggle();
 
   return (
     <button

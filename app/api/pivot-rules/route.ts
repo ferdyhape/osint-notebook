@@ -13,6 +13,19 @@ export async function GET(request: NextRequest) {
   const rules = await prisma.pivotRule.findMany({
     where: entityType ? { entityType } : undefined,
     orderBy: [{ entityType: "asc" }, { sortOrder: "asc" }],
+    select: {
+      id: true,
+      entityType: true,
+      title: true,
+      description: true,
+      actionType: true,
+      urlTemplate: true,
+      category: true,
+      isFree: true,
+      combinable: true,
+      sortOrder: true,
+      createdById: true,
+    },
   });
   return NextResponse.json(rules);
 }

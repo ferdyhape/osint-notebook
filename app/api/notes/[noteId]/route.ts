@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireCaseAccess } from "@/lib/case-access";
+import { requireCaseAccess, resolveCaseId } from "@/lib/case-access";
 
 type Params = { params: Promise<{ noteId: string }> };
-
-async function resolveCaseId(noteId: number) {
-  const note = await prisma.note.findUnique({ where: { id: noteId }, select: { caseId: true } });
-  return note?.caseId ?? null;
-}
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const { noteId } = await params;
   const id = Number(noteId);
-  const caseId = await resolveCaseId(id);
+  const caseId = await resolveCaseId(prisma.note, id);
   if (!caseId) return NextResponse.json({ error: "not found" }, { status: 404 });
   const access = await requireCaseAccess(caseId, "editor");
   if (!access.ok) return access.response;
@@ -34,7 +29,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const { noteId } = await params;
   const id = Number(noteId);
-  const caseId = await resolveCaseId(id);
+  const caseId = await resolveCaseId(prisma.note, id);
   if (!caseId) return NextResponse.json({ error: "not found" }, { status: 404 });
   const access = await requireCaseAccess(caseId, "editor");
   if (!access.ok) return access.response;

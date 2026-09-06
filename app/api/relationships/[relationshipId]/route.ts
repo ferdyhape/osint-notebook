@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireCaseAccess } from "@/lib/case-access";
+import { requireCaseAccess, resolveCaseId } from "@/lib/case-access";
 
 type Params = { params: Promise<{ relationshipId: string }> };
 
@@ -10,10 +10,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const { relationshipId } = await params;
   const id = Number(relationshipId);
 
-  const relationship = await prisma.relationship.findUnique({ where: { id }, select: { caseId: true } });
-  if (!relationship) return NextResponse.json({ error: "not found" }, { status: 404 });
+  const caseId = await resolveCaseId(prisma.relationship, id);
+  if (!caseId) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  const access = await requireCaseAccess(relationship.caseId, "editor");
+  const access = await requireCaseAccess(caseId, "editor");
   if (!access.ok) return access.response;
 
   const body = await request.json();
@@ -24,7 +24,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
   if (entityAId !== undefined || entityBId !== undefined) {
     const ids = [entityAId, entityBId].filter((v) => v !== undefined).map(Number);
-    const count = await prisma.entity.count({ where: { id: { in: ids }, caseId: relationship.caseId } });
+    const count = await prisma.entity.count({ where: { id: { in: ids }, caseId } });
     if (count !== ids.length) {
       return NextResponse.json({ error: "Both entities must belong to this case" }, { status: 400 });
     }
@@ -49,10 +49,10 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   const { relationshipId } = await params;
   const id = Number(relationshipId);
 
-  const relationship = await prisma.relationship.findUnique({ where: { id }, select: { caseId: true } });
-  if (!relationship) return NextResponse.json({ error: "not found" }, { status: 404 });
+  const caseId = await resolveCaseId(prisma.relationship, id);
+  if (!caseId) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  const access = await requireCaseAccess(relationship.caseId, "editor");
+  const access = await requireCaseAccess(caseId, "editor");
   if (!access.ok) return access.response;
 
   await prisma.relationship.delete({ where: { id } });

@@ -60,3 +60,21 @@ export async function requireCaseAccess(caseId: number, minRole: CaseRole) {
 
   return { ok: true as const, role, user };
 }
+
+/** Shared shape of `prisma.entity`/`prisma.note`/`prisma.relationship` — the
+ *  one method each of them is used through here. */
+type HasCaseId = {
+  findUnique: (args: { where: { id: number }; select: { caseId: true } }) => Promise<{ caseId: number } | null>;
+};
+
+/**
+ * Looks up which case a row belongs to, given only its own id — the first
+ * step in every entity/note/relationship route before an access check can
+ * even be attempted. One implementation for the three models that need it
+ * (`prisma.entity`, `prisma.note`, `prisma.relationship`) rather than a
+ * near-identical private copy re-typed per route.
+ */
+export async function resolveCaseId(model: HasCaseId, id: number): Promise<number | null> {
+  const row = await model.findUnique({ where: { id }, select: { caseId: true } });
+  return row?.caseId ?? null;
+}
