@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/Modal";
 import { RelationTypeInput } from "@/components/RelationTypeInput";
+import { IconSwap } from "@/components/icons";
 import { DEFAULT_RELATION_TYPE, relationSubject } from "@/lib/relationship";
 
 export type EntityOption = { id: number; type: string; value: string; label?: string | null };
@@ -48,6 +49,11 @@ export function AddRelationshipModal({
   const [fetchedOptions, setFetchedOptions] = useState<EntityOption[] | null>(null);
   const [toId, setToId] = useState<number | "">(to?.id ?? "");
   const [relationType, setRelationType] = useState(DEFAULT_RELATION_TYPE);
+  // Which of the two entities is entityA ("from") for this particular
+  // relationship — the natural pairing depends on the vocabulary, not just on
+  // which entity happened to be clicked/selected first, so it needs to be
+  // reversible rather than fixed by `from`/`to` alone.
+  const [flipped, setFlipped] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,6 +81,7 @@ export function AddRelationshipModal({
   function handleClose() {
     setToId(to?.id ?? "");
     setRelationType(DEFAULT_RELATION_TYPE);
+    setFlipped(false);
     setError(null);
     onClose();
   }
@@ -83,16 +90,22 @@ export function AddRelationshipModal({
   const target = to ?? options?.find((e) => e.id === toId);
   const candidates = (options ?? []).filter((e) => e.id !== from.id);
 
+  // Swapping only means something once both sides are known — with no target
+  // picked yet there's nothing to flip `from` against.
+  const canSwap = Boolean(target);
+  const source = flipped && target ? target : from;
+  const destination = flipped && target ? from : target;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!target) return;
+    if (!destination) return;
     setSubmitting(true);
     setError(null);
     try {
       const res = await fetch("/api/relationships", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ caseId, entityAId: from.id, entityBId: target.id, relationType }),
+        body: JSON.stringify({ caseId, entityAId: source.id, entityBId: destination.id, relationType }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -114,7 +127,7 @@ export function AddRelationshipModal({
       open={open}
       onClose={handleClose}
       title="Add relationship"
-      description={`From ${relationSubject(from)} — ${from.value}`}
+      description={`Linking ${relationSubject(from)}: ${from.value}`}
     >
       <form onSubmit={submit} className="space-y-3">
         {!to && (
@@ -145,13 +158,40 @@ export function AddRelationshipModal({
           </div>
         )}
 
+        {/* Which one is "from" isn't fixed by who got clicked/selected first —
+         *  the vocabulary decides that, so it needs to be reversible right
+         *  here rather than requiring you to redo the selection in the other
+         *  order. Only shown once both sides are known (see canSwap). */}
+        {canSwap && (
+          <div className="flex items-center justify-center gap-2 text-sm">
+            <span className="min-w-0 truncate font-medium" title={`${relationSubject(source)}: ${source.value}`}>
+              {relationSubject(source)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setFlipped((f) => !f)}
+              className="btn btn-row shrink-0"
+              title="Swap direction"
+              aria-label="Swap which entity is the source"
+            >
+              <IconSwap />
+            </button>
+            <span
+              className="min-w-0 truncate font-medium"
+              title={destination ? `${relationSubject(destination)}: ${destination.value}` : undefined}
+            >
+              {destination ? relationSubject(destination) : "…"}
+            </span>
+          </div>
+        )}
+
         <div>
           <label className="label">Relationship</label>
           <RelationTypeInput
             value={relationType}
             onChange={setRelationType}
-            fromText={relationSubject(from)}
-            toText={target ? relationSubject(target) : "…"}
+            fromText={relationSubject(source)}
+            toText={destination ? relationSubject(destination) : "…"}
             autoFocus={Boolean(to)}
           />
         </div>
@@ -164,7 +204,7 @@ export function AddRelationshipModal({
           </button>
           <button
             type="submit"
-            disabled={submitting || !target}
+            disabled={submitting || !destination}
             className="btn btn-primary disabled:opacity-50"
           >
             {submitting ? "Linking…" : "Add relationship"}

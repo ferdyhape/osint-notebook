@@ -87,3 +87,13 @@ export function IconClose({ className }: IconProps) {
     </svg>
   );
 }
+
+/** Two opposing arrows — swaps which side of a relationship is "from". */
+export function IconSwap({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M2.5 5.5h9m0 0-2.5-2.5m2.5 2.5-2.5 2.5" />
+      <path d="M13.5 10.5h-9m0 0 2.5-2.5m-2.5 2.5 2.5 2.5" />
+    </svg>
+  );
+}
