@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { PivotRule } from "@prisma/client";
 import { resolvePivotSuggestion, isUrlValue, type CombineOperator } from "@/lib/pivot";
-import { EntityFormModal } from "@/components/EntityFormModal";
-import { DeleteEntityButton } from "@/components/DeleteEntityButton";
-import { CopyButton } from "@/components/CopyButton";
-import { CopyableText } from "@/components/CopyableText";
-import { AddRelationshipModal, type EntityOption } from "@/components/AddRelationshipModal";
-import { IconExternalLink, IconLink } from "@/components/icons";
+import { EntityFormModal } from "@/components/entities/EntityFormModal";
+import { DeleteEntityButton } from "@/components/entities/DeleteEntityButton";
+import { CopyButton } from "@/components/ui/CopyButton";
+import { CopyableText } from "@/components/ui/CopyableText";
+import { AddRelationshipModal, type EntityOption } from "@/components/relationships/AddRelationshipModal";
+import { IconExternalLink, IconLink } from "@/components/ui/icons";
 
 type EntityRow = {
   id: number;

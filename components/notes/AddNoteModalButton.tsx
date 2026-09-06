@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Modal } from "@/components/Modal";
-import { AddNoteForm } from "@/components/AddNoteForm";
+import { Modal } from "@/components/ui/Modal";
+import { AddNoteForm } from "@/components/notes/AddNoteForm";
 
 export function AddNoteModalButton({ caseId, entityId }: { caseId: number; entityId?: number }) {
   const [open, setOpen] = useState(false);

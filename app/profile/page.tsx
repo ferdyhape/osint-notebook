@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { ChangePasswordForm, ProfileDetailsForm } from "@/components/ProfileForms";
+import { ChangePasswordForm, ProfileDetailsForm } from "@/components/profile/ProfileForms";
 
 export const dynamic = "force-dynamic";
 

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { IconEdit, IconTrash } from "@/components/icons";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { IconEdit, IconTrash } from "@/components/ui/icons";
 
 type NoteRow = {
   id: number;

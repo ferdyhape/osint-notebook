@@ -4,8 +4,8 @@ import { resolveShareToken } from "@/lib/share-link";
 import { fetchCaseBoardData, entitiesToNodes, relationshipsToEdges, notesByEntity, computeForceLayout } from "@/lib/board";
 import { InvestigationBoard } from "@/components/board/InvestigationBoard";
 import { CaseViewTabs } from "@/components/board/CaseViewTabs";
-import { InvalidShareLink } from "@/components/InvalidShareLink";
-import { ExportMenu } from "@/components/ExportMenu";
+import { InvalidShareLink } from "@/components/sharing/InvalidShareLink";
+import { ExportMenu } from "@/components/cases/ExportMenu";
 import { shareMetadata } from "@/lib/share-metadata";
 
 export const dynamic = "force-dynamic";

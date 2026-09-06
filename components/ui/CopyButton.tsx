@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconCopy, IconCheck } from "@/components/icons";
+import { IconCopy, IconCheck } from "@/components/ui/icons";
 
 export function CopyButton({
   value,

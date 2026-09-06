@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { PivotRule } from "@prisma/client";
 import { resolvePivotSuggestion, type CombineOperator } from "@/lib/pivot";
-import { IconLink } from "@/components/icons";
+import { IconLink } from "@/components/ui/icons";
 
 export function BoardSelectionToolbar({
   selectedValues,

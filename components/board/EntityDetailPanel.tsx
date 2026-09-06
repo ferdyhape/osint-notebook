@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { PivotSuggestionsPanel } from "@/components/PivotSuggestionsPanel";
-import { CopyButton } from "@/components/CopyButton";
-import { AddRelationshipModal, type EntityOption } from "@/components/AddRelationshipModal";
-import { RelationTypeInput } from "@/components/RelationTypeInput";
-import { RelationshipRow } from "@/components/RelationshipRow";
-import { EntityTypeInput } from "@/components/EntityTypeInput";
-import { IconEdit, IconTrash, IconPlus, IconClose } from "@/components/icons";
+import { PivotSuggestionsPanel } from "@/components/pivot/PivotSuggestionsPanel";
+import { CopyButton } from "@/components/ui/CopyButton";
+import { AddRelationshipModal, type EntityOption } from "@/components/relationships/AddRelationshipModal";
+import { RelationTypeInput } from "@/components/relationships/RelationTypeInput";
+import { RelationshipRow } from "@/components/relationships/RelationshipRow";
+import { EntityTypeInput } from "@/components/entities/EntityTypeInput";
+import { IconEdit, IconTrash, IconPlus, IconClose } from "@/components/ui/icons";
 import { isUrlValue } from "@/lib/pivot";
 import { relationSubject } from "@/lib/relationship";
 import type { BoardNotePreview, EntityNodeData } from "@/lib/board";

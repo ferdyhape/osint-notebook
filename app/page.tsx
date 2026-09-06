@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { CaseCard } from "@/components/CaseCard";
-import { CaseFormModal } from "@/components/CaseFormModal";
-import { ImportCaseModal } from "@/components/ImportCaseModal";
+import { CaseCard } from "@/components/cases/CaseCard";
+import { CaseFormModal } from "@/components/cases/CaseFormModal";
+import { ImportCaseModal } from "@/components/cases/ImportCaseModal";
 import { LandingPage } from "@/components/landing/LandingPage";
 
 export const dynamic = "force-dynamic";

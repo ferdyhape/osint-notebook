@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ENTITY_TYPES } from "@/lib/pivot";
 import { DEFAULT_RELATION_TYPE, relationSubject } from "@/lib/relationship";
-import { EntityTypeInput } from "@/components/EntityTypeInput";
-import { RelationTypeInput } from "@/components/RelationTypeInput";
+import { EntityTypeInput } from "@/components/entities/EntityTypeInput";
+import { RelationTypeInput } from "@/components/relationships/RelationTypeInput";
 
 export type EntityFormValues = {
   id: number;

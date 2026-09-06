@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserMenu } from "@/components/UserMenu";
-import { ThemeToggleButton } from "@/components/ThemeToggleButton";
+import { UserMenu } from "@/components/layout/UserMenu";
+import { ThemeToggleButton } from "@/components/theme/ThemeToggleButton";
 
 const LINKS = [
   { href: "/", label: "Cases" },

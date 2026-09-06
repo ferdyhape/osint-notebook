@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { PivotRuleFormModal } from "@/components/PivotRuleFormModal";
-import { PivotRulesTable } from "@/components/PivotRulesTable";
+import { PivotRuleFormModal } from "@/components/pivot/PivotRuleFormModal";
+import { PivotRulesTable } from "@/components/pivot/PivotRulesTable";
 
 export const dynamic = "force-dynamic";
 

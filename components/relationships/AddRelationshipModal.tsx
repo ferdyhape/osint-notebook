@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Modal } from "@/components/Modal";
-import { RelationTypeInput } from "@/components/RelationTypeInput";
-import { IconSwap } from "@/components/icons";
+import { Modal } from "@/components/ui/Modal";
+import { RelationTypeInput } from "@/components/relationships/RelationTypeInput";
+import { IconSwap } from "@/components/ui/icons";
 import { DEFAULT_RELATION_TYPE, relationSubject } from "@/lib/relationship";
 
 export type EntityOption = { id: number; type: string; value: string; label?: string | null };

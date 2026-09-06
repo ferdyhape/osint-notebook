@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export function DeleteCaseButton({ caseId, caseName }: { caseId: number; caseName: string }) {
   const router = useRouter();

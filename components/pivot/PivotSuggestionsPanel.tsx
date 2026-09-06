@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { EntityForm } from "@/components/EntityForm";
+import { EntityForm } from "@/components/entities/EntityForm";
 
 type Suggestion = {
   id: number;

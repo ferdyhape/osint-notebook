@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Modal } from "@/components/Modal";
-import { EntityForm, type EntityFormValues } from "@/components/EntityForm";
-import { IconEdit } from "@/components/icons";
+import { Modal } from "@/components/ui/Modal";
+import { EntityForm, type EntityFormValues } from "@/components/entities/EntityForm";
+import { IconEdit } from "@/components/ui/icons";
 
 type EntityFormModalProps = {
   caseId: number;

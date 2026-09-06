@@ -17,15 +17,15 @@ import { relationshipLabel } from "@/lib/edge-label-style";
 import { DEFAULT_RELATION_TYPE, relationSubject } from "@/lib/relationship";
 import { EntityNode } from "@/components/board/EntityNode";
 import { EntityDetailPanel, type RelatedRow } from "@/components/board/EntityDetailPanel";
-import { AddRelationshipModal, type EntityOption } from "@/components/AddRelationshipModal";
-import { RelationTypeInput } from "@/components/RelationTypeInput";
+import { AddRelationshipModal, type EntityOption } from "@/components/relationships/AddRelationshipModal";
+import { RelationTypeInput } from "@/components/relationships/RelationTypeInput";
 import { BoardSelectionToolbar } from "@/components/board/BoardSelectionToolbar";
 import { BoardControls } from "@/components/board/BoardControls";
 import { safeZoomToFit } from "@/components/board/safe-zoom";
 import { BoardContextMenu, type ContextMenuItem } from "@/components/board/BoardContextMenu";
 import { BoardShortcutsModal } from "@/components/board/BoardShortcutsModal";
-import { Modal } from "@/components/Modal";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 // Registered once at module scope (re-executes harmlessly on Fast Refresh — both
 // calls below overwrite any existing registration rather than erroring on it).

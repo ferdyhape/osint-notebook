@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Image from "next/image";
-import { RegisterForm } from "@/components/RegisterForm";
+import { RegisterForm } from "@/components/auth/RegisterForm";
 import { ogImage, siteName } from "@/lib/site";
 
 export const dynamic = "force-dynamic";

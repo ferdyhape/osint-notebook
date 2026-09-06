@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Modal } from "@/components/Modal";
+import { Modal } from "@/components/ui/Modal";
 
 type CaseFormModalProps = {
   /** Omit to create a new case. */

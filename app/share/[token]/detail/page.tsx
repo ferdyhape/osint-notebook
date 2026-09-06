@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { resolveShareToken } from "@/lib/share-link";
 import { fetchCaseBoardData } from "@/lib/board";
-import { EntityTable } from "@/components/EntityTable";
-import { NoteTimeline } from "@/components/NoteTimeline";
-import { ExportMenu } from "@/components/ExportMenu";
+import { EntityTable } from "@/components/entities/EntityTable";
+import { NoteTimeline } from "@/components/notes/NoteTimeline";
+import { ExportMenu } from "@/components/cases/ExportMenu";
 import { CaseViewTabs } from "@/components/board/CaseViewTabs";
-import { InvalidShareLink } from "@/components/InvalidShareLink";
+import { InvalidShareLink } from "@/components/sharing/InvalidShareLink";
 import { shareMetadata } from "@/lib/share-metadata";
 
 export const dynamic = "force-dynamic";

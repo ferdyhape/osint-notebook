@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ANY_ENTITY_TYPE } from "@/lib/pivot";
-import { Modal } from "@/components/Modal";
-import { EntityTypeInput } from "@/components/EntityTypeInput";
-import { IconEdit } from "@/components/icons";
+import { Modal } from "@/components/ui/Modal";
+import { EntityTypeInput } from "@/components/entities/EntityTypeInput";
+import { IconEdit } from "@/components/ui/icons";
 
 export type PivotRuleValues = {
   id: number;

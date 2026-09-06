@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { PivotRuleFormModal, type PivotRuleValues } from "@/components/PivotRuleFormModal";
-import { IconTrash } from "@/components/icons";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PivotRuleFormModal, type PivotRuleValues } from "@/components/pivot/PivotRuleFormModal";
+import { IconTrash } from "@/components/ui/icons";
 
 export function PivotRulesTable({
   rules,

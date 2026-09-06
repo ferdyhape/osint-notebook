@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { IconTrash } from "@/components/icons";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { IconTrash } from "@/components/ui/icons";
 
 export function DeleteEntityButton({
   entityId,

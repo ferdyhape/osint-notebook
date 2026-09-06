@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ThemeSwitch } from "@/components/ThemeSwitch";
+import { ThemeSwitch } from "@/components/theme/ThemeSwitch";
 
 function initials(name: string | null, email: string) {
   const source = name?.trim() || email.split("@")[0];

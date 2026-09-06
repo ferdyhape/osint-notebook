@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AddRelationshipModal, type EntityOption } from "@/components/AddRelationshipModal";
-import { RelationTypeInput } from "@/components/RelationTypeInput";
-import { RelationshipRow } from "@/components/RelationshipRow";
-import { IconEdit, IconTrash, IconPlus } from "@/components/icons";
+import { AddRelationshipModal, type EntityOption } from "@/components/relationships/AddRelationshipModal";
+import { RelationTypeInput } from "@/components/relationships/RelationTypeInput";
+import { RelationshipRow } from "@/components/relationships/RelationshipRow";
+import { IconEdit, IconTrash, IconPlus } from "@/components/ui/icons";
 import { relationSubject } from "@/lib/relationship";
 
 export type RelatedRow = {

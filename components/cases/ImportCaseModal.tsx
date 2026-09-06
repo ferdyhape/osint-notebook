@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Modal } from "@/components/Modal";
+import { Modal } from "@/components/ui/Modal";
 
 /** Restores a case from a JSON export produced by the Export menu — a brand
  *  new case, owned by whoever imports it. Every timestamp in the file is

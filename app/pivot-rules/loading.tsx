@@ -1,4 +1,4 @@
-import { Skel } from "@/components/Skeleton";
+import { Skel } from "@/components/ui/Skeleton";
 
 export default function Loading() {
   return (

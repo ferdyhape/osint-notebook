@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { relationSubject, clip } from "@/lib/relationship";
-import type { EntityOption } from "@/components/AddRelationshipModal";
+import type { EntityOption } from "@/components/relationships/AddRelationshipModal";
 
 const TYPE_LIMIT = 16;
 const VALUE_LIMIT = 22;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ShareModal } from "@/components/ShareModal";
+import { ShareModal } from "@/components/sharing/ShareModal";
 
 export function ShareButton({ caseId }: { caseId: number }) {
   const [open, setOpen] = useState(false);

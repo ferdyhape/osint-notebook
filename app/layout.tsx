@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, IBM_Plex_Mono } from "next/font/google";
-import { NavBar } from "@/components/NavBar";
-import { VerifyBanner } from "@/components/VerifyBanner";
+import { NavBar } from "@/components/layout/NavBar";
+import { VerifyBanner } from "@/components/auth/VerifyBanner";
 import { getCurrentUser } from "@/lib/auth";
 import { siteDescription, siteName, siteTagline, siteTitle, siteUrl } from "@/lib/site";
 import "./globals.css";
