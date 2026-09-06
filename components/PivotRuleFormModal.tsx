@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ANY_ENTITY_TYPE } from "@/lib/pivot";
 import { Modal } from "@/components/Modal";
 import { EntityTypeInput } from "@/components/EntityTypeInput";
+import { IconEdit } from "@/components/icons";
 
 export type PivotRuleValues = {
   id: number;
@@ -15,6 +16,9 @@ export type PivotRuleValues = {
   urlTemplate: string | null;
   category: string;
   combinable: boolean;
+  /** Null = seeded/built-in. Set = added by that user. */
+  createdById?: number | null;
+  createdByName?: string | null;
 };
 
 export function PivotRuleFormModal({ initial }: { initial?: PivotRuleValues }) {
@@ -79,8 +83,13 @@ export function PivotRuleFormModal({ initial }: { initial?: PivotRuleValues }) {
 
   return (
     <>
-      <button onClick={openForm} className={isEdit ? "btn btn-row" : "btn btn-primary"}>
-        {isEdit ? "Edit" : "New rule"}
+      <button
+        onClick={openForm}
+        className={isEdit ? "btn btn-row" : "btn btn-primary"}
+        aria-label={isEdit ? "Edit rule" : "New rule"}
+        title={isEdit ? "Edit rule" : "New rule"}
+      >
+        {isEdit ? <IconEdit /> : "New rule"}
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title={isEdit ? "Edit rule" : "New rule"}>

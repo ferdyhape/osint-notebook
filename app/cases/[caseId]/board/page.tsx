@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getCaseAccess } from "@/lib/case-access";
@@ -49,7 +50,10 @@ export default async function CaseBoardPage({ params }: { params: Promise<{ case
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="page-title">{data.name}</h1>
+          <Link href="/" className="btn btn-ghost btn-sm">
+            ← All cases
+          </Link>
+          <h1 className="page-title mt-1">{data.name}</h1>
           <p className="text-sm text-muted mt-1">Investigation board</p>
         </div>
         <CaseViewTabs detailHref={`/cases/${id}`} boardHref={`/cases/${id}/board`} active="board" />

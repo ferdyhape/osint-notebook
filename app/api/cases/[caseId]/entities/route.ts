@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizeType } from "@/lib/pivot";
+import { DEFAULT_RELATION_TYPE } from "@/lib/relationship";
 import { requireCaseAccess } from "@/lib/case-access";
 
 type Params = { params: Promise<{ caseId: string }> };
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (!access.ok) return access.response;
 
   const body = await request.json();
-  const { type, value, attributes, source, relatedToEntityId, relationType } = body;
+  const { type, value, label, attributes, source, relatedToEntityId, relationType } = body;
 
   if (!type || typeof type !== "string") {
     return NextResponse.json({ error: "type is required" }, { status: 400 });
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         caseId: id,
         type: normalizeType(type),
         value: value.trim(),
+        label: typeof label === "string" && label.trim() ? label.trim() : null,
         attributes: attributes ?? undefined,
         source: source ?? null,
       },
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest, { params }: Params) {
           caseId: id,
           entityAId: Number(relatedToEntityId),
           entityBId: created.id,
-          relationType: relationType || "found from",
+          relationType: relationType || DEFAULT_RELATION_TYPE,
         },
       });
 

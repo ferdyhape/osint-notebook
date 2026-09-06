@@ -19,10 +19,21 @@ export async function GET(_request: NextRequest, { params }: Params) {
     orderBy: { sortOrder: "asc" },
   });
 
-  // Type-specific steps first, generic "any" steps after.
-  const ordered = rules.sort(
-    (a, b) => Number(a.entityType === ANY_ENTITY_TYPE) - Number(b.entityType === ANY_ENTITY_TYPE)
-  );
+  // Type-specific steps before generic "any" ones — and, within each of those
+  // two groups, a rule someone added themselves before the built-in ones: the
+  // whole point of adding your own is that it's the step you actually want to
+  // see, not one buried under the defaults.
+  const ordered = rules.sort((a, b) => {
+    const groupA = a.entityType === ANY_ENTITY_TYPE ? 1 : 0;
+    const groupB = b.entityType === ANY_ENTITY_TYPE ? 1 : 0;
+    if (groupA !== groupB) return groupA - groupB;
+
+    const seededA = a.createdById === null ? 1 : 0;
+    const seededB = b.createdById === null ? 1 : 0;
+    if (seededA !== seededB) return seededA - seededB;
+
+    return a.sortOrder - b.sortOrder;
+  });
 
   const suggestions = ordered.map((rule) => resolvePivotSuggestion(rule, entity.value));
   return NextResponse.json(suggestions);

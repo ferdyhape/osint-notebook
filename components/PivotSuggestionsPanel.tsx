@@ -12,16 +12,23 @@ type Suggestion = {
   category: string;
   isFree: boolean;
   resolvedUrl: string | null;
+  createdById: number | null;
 };
 
 export function PivotSuggestionsPanel({
   caseId,
   entityId,
+  entityType,
+  entityLabel,
   readOnly = false,
   fetchUrl,
 }: {
   caseId: number;
   entityId: number;
+  /** The entity this panel is for — feeds the "from" side of the relation-type
+   *  hint when logging a finding pivoted from here. */
+  entityType?: string;
+  entityLabel?: string | null;
   readOnly?: boolean;
   /** Overrides the default `/api/entities/[id]/pivot-suggestions` — used by the anonymous share view's token-scoped endpoint. */
   fetchUrl?: string;
@@ -78,6 +85,7 @@ export function PivotSuggestionsPanel({
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="item-title">{s.title}</p>
                 <span className="eyebrow">{s.category}</span>
+                {s.createdById !== null && <span className="badge badge-accent">your rule</span>}
               </div>
               <p className="text-sm text-muted mt-0.5">{s.description}</p>
             </div>
@@ -99,6 +107,7 @@ export function PivotSuggestionsPanel({
                 <EntityForm
                   caseId={caseId}
                   relatedToEntityId={entityId}
+                  relatedFrom={entityType ? { type: entityType, label: entityLabel } : undefined}
                   onDone={() => setLogFormOpenFor(null)}
                 />
               </div>

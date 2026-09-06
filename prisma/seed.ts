@@ -570,7 +570,9 @@ const DEFAULT_ACCOUNT = {
   password: "password!",
 };
 
-/** Creates the first sign-in account. Does nothing if that email already exists. */
+/** Creates the first sign-in account — and, since it's the one the deployer
+ *  controls via `.env`, promotes it to `role: "admin"` (idempotent: also
+ *  promotes it if it was seeded/registered before the role system existed). */
 async function seedAdminUser() {
   const email = (process.env.ADMIN_EMAIL || DEFAULT_ACCOUNT.email).trim().toLowerCase();
   const name = process.env.ADMIN_NAME || DEFAULT_ACCOUNT.name;
@@ -578,14 +580,19 @@ async function seedAdminUser() {
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    console.log(`Account: ${email} already exists, left as is.`);
+    if (existing.role !== "admin") {
+      await prisma.user.update({ where: { id: existing.id }, data: { role: "admin" } });
+      console.log(`Account: ${email} already exists — promoted to admin.`);
+    } else {
+      console.log(`Account: ${email} already exists, left as is.`);
+    }
     return;
   }
 
   await prisma.user.create({
-    data: { email, name, passwordHash: await bcrypt.hash(password, 12) },
+    data: { email, name, passwordHash: await bcrypt.hash(password, 12), role: "admin" },
   });
-  console.log(`Account: created ${email}.`);
+  console.log(`Account: created ${email} (admin).`);
 
   if (password === DEFAULT_ACCOUNT.password) {
     console.log("  ! This is the published default password. Change it before the app is reachable by anyone else.");

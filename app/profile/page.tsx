@@ -19,18 +19,23 @@ export default async function ProfilePage() {
   if (!user) redirect("/login");
 
   return (
-    <div className="max-w-lg space-y-8">
+    <div className="space-y-8">
       <h1 className="page-title">Account</h1>
 
-      <section className="space-y-3">
-        <h2 className="section-title">Profile</h2>
-        <ProfileDetailsForm initial={{ email: user.email, name: user.name }} />
-      </section>
+      {/* Side-by-side once there's room for it — stacked on top of each other
+       *  in a narrow max-w-lg column left the right half of a desktop screen
+       *  as dead space. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-3xl">
+        <section className="space-y-3">
+          <h2 className="section-title">Profile</h2>
+          <ProfileDetailsForm initial={{ email: user.email, name: user.name }} />
+        </section>
 
-      <section className="space-y-3">
-        <h2 className="section-title">Password</h2>
-        <ChangePasswordForm />
-      </section>
+        <section className="space-y-3">
+          <h2 className="section-title">Password</h2>
+          <ChangePasswordForm />
+        </section>
+      </div>
     </div>
   );
 }

@@ -7,10 +7,13 @@ export type CaseRole = "owner" | "editor" | "viewer";
 
 const RANK: Record<CaseRole, number> = { viewer: 0, editor: 1, owner: 2 };
 
-/** The caller's role on a case, or null if they have no access at all. */
+/** The caller's role on a case, or null if they have no access at all.
+ *  An admin who has no ownership/share on the case still gets "viewer" — enough
+ *  to browse it read-only, never enough to edit or delete it — so "see every
+ *  user's cases" doesn't also mean "touch every user's cases". */
 export async function getCaseAccess(
   caseId: number,
-  user: { id: number; email: string } | null
+  user: { id: number; email: string; role?: string } | null
 ): Promise<CaseRole | null> {
   if (!user) return null;
 
@@ -26,7 +29,7 @@ export async function getCaseAccess(
     },
     select: { id: true, role: true, userId: true },
   });
-  if (!share) return null;
+  if (!share) return user.role === "admin" ? "viewer" : null;
 
   if (!share.userId) {
     await prisma.caseShare.update({ where: { id: share.id }, data: { userId: user.id } });

@@ -56,11 +56,29 @@ export function EntityNode({ node, graph }: { node: Node; graph: Graph }) {
             {data.type.slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="eyebrow leading-none">{data.type}</p>
-            <p className="font-data text-[0.8125rem] font-semibold mt-1 truncate" title={data.value}>
+            <p className="eyebrow leading-none" title={data.type}>
+              {data.type}
+            </p>
+            {data.label && (
+              <p className="text-[0.8125rem] font-semibold mt-1 truncate" title={data.label}>
+                {data.label}
+              </p>
+            )}
+            <p
+              className={
+                data.label
+                  ? "font-data text-xs text-muted truncate"
+                  : "font-data text-[0.8125rem] font-semibold mt-1 truncate"
+              }
+              title={data.value}
+            >
               {data.value}
             </p>
-            {data.source && <p className="text-xs text-muted mt-0.5 truncate">{data.source}</p>}
+            {data.source && (
+              <p className="text-xs text-muted mt-0.5 truncate" title={data.source}>
+                {data.source}
+              </p>
+            )}
           </div>
         </div>
 

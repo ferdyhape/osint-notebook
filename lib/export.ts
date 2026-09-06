@@ -10,13 +10,13 @@ export async function getCaseExportData(caseId: number): Promise<ExportCase | nu
       relationships: {
         orderBy: { createdAt: "asc" },
         include: {
-          entityA: { select: { value: true, type: true } },
-          entityB: { select: { value: true, type: true } },
+          entityA: { select: { value: true, type: true, label: true } },
+          entityB: { select: { value: true, type: true, label: true } },
         },
       },
       notes: {
         orderBy: { createdAt: "asc" },
-        include: { entity: { select: { value: true, type: true } } },
+        include: { entity: { select: { value: true, type: true, label: true } } },
       },
     },
   });
@@ -27,20 +27,21 @@ export type ExportEntity = {
   id: number;
   type: string;
   value: string;
+  label: string | null;
   source: string | null;
   createdAt: Date;
 };
 
 export type ExportRelationship = {
   relationType: string;
-  entityA: { value: string; type: string };
-  entityB: { value: string; type: string };
+  entityA: { value: string; type: string; label: string | null };
+  entityB: { value: string; type: string; label: string | null };
 };
 
 export type ExportNote = {
   content: string;
   createdAt: Date;
-  entity: { value: string; type: string } | null;
+  entity: { value: string; type: string; label: string | null } | null;
 };
 
 export type ExportCase = {
@@ -96,23 +97,29 @@ export function caseToMarkdown(data: ExportCase) {
   if (data.entities.length === 0) {
     lines.push("_None recorded._", "");
   } else {
-    lines.push("| Type | Value | Source | Added |");
-    lines.push("| --- | --- | --- | --- |");
+    lines.push("| Type | Label | Value | Source | Added |");
+    lines.push("| --- | --- | --- | --- | --- |");
     for (const e of data.entities) {
       lines.push(
-        `| ${cell(e.type)} | \`${cell(e.value)}\` | ${cell(e.source ?? "—")} | ${day(e.createdAt)} |`
+        `| ${cell(e.type)} | ${cell(e.label ?? "—")} | \`${cell(e.value)}\` | ${cell(e.source ?? "—")} | ${day(e.createdAt)} |`
       );
     }
     lines.push("");
   }
 
-  lines.push(`## Links (${data.relationships.length})`, "");
+  // "{entityA} ({type}) — relation → {entityB} ({type})" reads forward,
+  // subject-verb-object, the same direction the arrow on the board points —
+  // the type on both ends is what a bare value-to-value line was missing,
+  // and is what made this section unclear.
+  lines.push(`## Relationships (${data.relationships.length})`, "");
   if (data.relationships.length === 0) {
     lines.push("_None recorded._", "");
   } else {
     for (const r of data.relationships) {
+      const a = r.entityA.label ? `${cell(r.entityA.label)} (${cell(r.entityA.type)})` : cell(r.entityA.type);
+      const b = r.entityB.label ? `${cell(r.entityB.label)} (${cell(r.entityB.type)})` : cell(r.entityB.type);
       lines.push(
-        `- \`${cell(r.entityB.value)}\` — ${cell(r.relationType)} → \`${cell(r.entityA.value)}\``
+        `- \`${cell(r.entityA.value)}\` _(${a})_ — **${cell(r.relationType)}** → \`${cell(r.entityB.value)}\` _(${b})_`
       );
     }
     lines.push("");
@@ -123,7 +130,8 @@ export function caseToMarkdown(data: ExportCase) {
     lines.push("_None recorded._", "");
   } else {
     for (const n of data.notes) {
-      const attached = n.entity ? ` · on \`${cell(n.entity.value)}\`` : "";
+      const entityLabel = n.entity?.label ? ` "${cell(n.entity.label)}"` : "";
+      const attached = n.entity ? ` · on \`${cell(n.entity.value)}\`${entityLabel} (${cell(n.entity.type)})` : "";
       lines.push(`### ${stamp(n.createdAt)}${attached}`, "");
       lines.push(n.content.trim(), "");
     }
@@ -147,18 +155,22 @@ export function caseToJson(data: ExportCase) {
         entities: data.entities.map((e) => ({
           type: e.type,
           value: e.value,
+          label: e.label,
           source: e.source,
           createdAt: e.createdAt.toISOString(),
         })),
+        // "from" is always the relationship's source (entityA), "to" its
+        // target/found entity (entityB) — the same forward direction the
+        // sentence "{from} {relation} {to}" and the board's arrow both read.
         relationships: data.relationships.map((r) => ({
-          from: { type: r.entityB.type, value: r.entityB.value },
+          from: { type: r.entityA.type, value: r.entityA.value, label: r.entityA.label },
           relation: r.relationType,
-          to: { type: r.entityA.type, value: r.entityA.value },
+          to: { type: r.entityB.type, value: r.entityB.value, label: r.entityB.label },
         })),
         notes: data.notes.map((n) => ({
           content: n.content,
           createdAt: n.createdAt.toISOString(),
-          entity: n.entity ? { type: n.entity.type, value: n.entity.value } : null,
+          entity: n.entity ? { type: n.entity.type, value: n.entity.value, label: n.entity.label } : null,
         })),
       },
       null,

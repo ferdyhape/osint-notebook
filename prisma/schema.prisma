@@ -33,6 +33,10 @@ model Entity {
   caseId     Int
   type       String
   value      String
+  /// Optional human-friendly name shown instead of/alongside the raw value —
+  /// e.g. "Primary Instagram" for a username entity. Purely cosmetic, never
+  /// used for matching/dedup (that's still type+value).
+  label      String?
   attributes Json?
   source     String?
   positionX  Float?
@@ -104,10 +108,16 @@ model PivotRule {
   isFree      Boolean  @default(true)
   combinable  Boolean  @default(false)
   sortOrder   Int      @default(0)
+  /// Null = seeded/system rule — editable and deletable only by an admin.
+  /// Set = a user-added rule, editable/deletable by that user (or an admin).
+  createdById Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
   @@index([entityType])
+  @@index([createdById])
 }
 
 model User {
@@ -115,6 +125,10 @@ model User {
   email           String    @unique
   name            String?
   passwordHash    String
+  /// "user" | "admin". An admin can view (read-only) every case regardless of
+  /// ownership/sharing, and is the only one who may edit or delete a seeded
+  /// (system) PivotRule.
+  role            String    @default("user")
   emailVerifiedAt DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -123,6 +137,7 @@ model User {
   createdShares      CaseShare[]         @relation("CaseShareCreatedBy")
   shareGrants        CaseShare[]         @relation("CaseShareUser")
   verificationTokens VerificationToken[]
+  pivotRulesCreated   PivotRule[]
 }
 
 /// Email-based shares (identity-gated, viewer|editor) AND the case's single

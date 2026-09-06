@@ -4,8 +4,15 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PivotRuleFormModal, type PivotRuleValues } from "@/components/PivotRuleFormModal";
+import { IconTrash } from "@/components/icons";
 
-export function PivotRulesTable({ rules }: { rules: PivotRuleValues[] }) {
+export function PivotRulesTable({
+  rules,
+  currentUser,
+}: {
+  rules: PivotRuleValues[];
+  currentUser: { id: number; role: string };
+}) {
   const router = useRouter();
   const [confirmRule, setConfirmRule] = useState<PivotRuleValues | null>(null);
   const [busy, setBusy] = useState(false);
@@ -17,7 +24,10 @@ export function PivotRulesTable({ rules }: { rules: PivotRuleValues[] }) {
     setError(null);
     try {
       const res = await fetch(`/api/pivot-rules/${confirmRule.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Could not delete the rule");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Could not delete the rule");
+      }
       setConfirmRule(null);
       router.refresh();
     } catch (err) {
@@ -40,12 +50,21 @@ export function PivotRulesTable({ rules }: { rules: PivotRuleValues[] }) {
     return acc;
   }, {});
 
+  // A seeded rule (no creator) is admin-only; a user-added one can be managed
+  // by whoever added it, or by an admin.
+  function canManage(r: PivotRuleValues) {
+    if (currentUser.role === "admin") return true;
+    return r.createdById != null && r.createdById === currentUser.id;
+  }
+
   return (
     <>
       <div className="space-y-6">
         {Object.entries(grouped).map(([entityType, group]) => (
           <div key={entityType}>
-            <h3 className="badge mb-2">{entityType}</h3>
+            <h3 className="badge mb-2" title={entityType}>
+              {entityType}
+            </h3>
             <div className="card divide-y divide-border">
               {group.map((r) => (
                 <div key={r.id} className="group p-3.5 flex items-start justify-between gap-3">
@@ -56,6 +75,9 @@ export function PivotRulesTable({ rules }: { rules: PivotRuleValues[] }) {
                         {r.category} · {r.actionType}
                       </span>
                       {r.combinable && <span className="badge badge-accent">combinable</span>}
+                      <span className="badge" title={r.createdByName ? `Added by ${r.createdByName}` : "Built in"}>
+                        {r.createdByName ? `by ${r.createdByName}` : "built-in"}
+                      </span>
                     </div>
                     <p className="text-sm text-muted mt-0.5">{r.description}</p>
                     {r.urlTemplate && (
@@ -64,15 +86,19 @@ export function PivotRulesTable({ rules }: { rules: PivotRuleValues[] }) {
                       </code>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    <PivotRuleFormModal initial={r} />
-                    <button
-                      onClick={() => setConfirmRule(r)}
-                      className="btn btn-row btn-row-danger"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  {canManage(r) && (
+                    <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                      <PivotRuleFormModal initial={r} />
+                      <button
+                        onClick={() => setConfirmRule(r)}
+                        className="btn btn-row btn-row-danger"
+                        aria-label="Delete rule"
+                        title="Delete rule"
+                      >
+                        <IconTrash />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

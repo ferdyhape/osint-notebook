@@ -12,9 +12,13 @@ import type {
   BoardNotePreview,
   EntityNodeData,
 } from "@/lib/board";
+import { entityNodeHeight, NODE_WIDTH } from "@/lib/board-layout";
 import { relationshipLabel } from "@/lib/edge-label-style";
+import { DEFAULT_RELATION_TYPE, relationSubject } from "@/lib/relationship";
 import { EntityNode } from "@/components/board/EntityNode";
-import { EntityDetailPanel } from "@/components/board/EntityDetailPanel";
+import { EntityDetailPanel, type RelatedRow } from "@/components/board/EntityDetailPanel";
+import { AddRelationshipModal, type EntityOption } from "@/components/AddRelationshipModal";
+import { RelationTypeInput } from "@/components/RelationTypeInput";
 import { BoardSelectionToolbar } from "@/components/board/BoardSelectionToolbar";
 import { BoardControls } from "@/components/board/BoardControls";
 import { safeZoomToFit } from "@/components/board/safe-zoom";
@@ -189,9 +193,16 @@ export function InvestigationBoard({
 
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [activeNodeData, setActiveNodeData] = useState<EntityNodeData | null>(null);
-  // Multi-select (marquee/ctrl-click) — editors only, feeds the AND/OR combine toolbar.
+  // Multi-select (marquee/ctrl-click) — editors only, feeds the AND/OR combine
+  // toolbar and (when exactly two are selected) the manual "add relationship" action.
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [pendingConnection, setPendingConnection] = useState<{ source: string; target: string } | null>(null);
+  // Manual "add relationship" launched from a node's right-click menu (picks
+  // the other side from a list) or from the selection toolbar (both sides
+  // already fixed by what's selected).
+  const [addRelFrom, setAddRelFrom] = useState<string | null>(null);
+  const [addRelPair, setAddRelPair] = useState(false);
   const [relationType, setRelationType] = useState("");
   const [creatingEdge, setCreatingEdge] = useState(false);
   const [rearranging, setRearranging] = useState(false);
@@ -209,6 +220,10 @@ export function InvestigationBoard({
   const [deletingEntity, setDeletingEntity] = useState(false);
   const [history, setHistory] = useState({ canUndo: false, canRedo: false });
   const [showShortcuts, setShowShortcuts] = useState(false);
+  // Notes added from the detail panel, keyed by node id — the server-provided
+  // `entityNotes` prop only reflects the last full render, so a note added
+  // without a page reload has to be tracked here until the next one.
+  const [extraNotes, setExtraNotes] = useState<Record<string, BoardNotePreview[]>>({});
 
   const hintDismissed = useSyncExternalStore(
     subscribeHint,
@@ -259,12 +274,15 @@ export function InvestigationBoard({
     toggleFullscreen();
   }
 
-  const showCombineToolbar = !readOnly && selectedValues.length >= 2 && combinableRules.length > 0;
-  const showDetailPanel = Boolean(activeNodeId) && activeNodeData && !showCombineToolbar;
+  const canDorkSelection = !readOnly && selectedValues.length >= 2 && combinableRules.length > 0;
+  const canAddRelationshipPair = !readOnly && selectedNodeIds.length === 2;
+  const showSelectionToolbar = canDorkSelection || canAddRelationshipPair;
+  const showDetailPanel = Boolean(activeNodeId) && activeNodeData && !showSelectionToolbar;
 
   function clearSelection() {
     graph?.cleanSelection();
     setSelectedValues([]);
+    setSelectedNodeIds([]);
   }
 
   function closeDetailPanel() {
@@ -294,7 +312,7 @@ export function InvestigationBoard({
           caseId,
           entityAId: Number(pendingConnection.source),
           entityBId: Number(pendingConnection.target),
-          relationType: relationType.trim() || "related to",
+          relationType: relationType.trim() || DEFAULT_RELATION_TYPE,
         }),
       });
       if (!res.ok) throw new Error();
@@ -472,6 +490,99 @@ export function InvestigationBoard({
   function deleteEdge(edgeId: string) {
     const edge = graph?.getCellById(edgeId);
     if (edge) graph!.removeCell(edge); // fires "edge:removed", which persists the delete
+  }
+
+  /** An entity's id + type/value/label, read straight off its live node — the
+   *  same shape the "add relationship" picker and the detail panel's related-
+   *  entities list both key off. */
+  function nodeSubject(nodeId: string): EntityOption {
+    const node = graph?.getCellById(nodeId) as Node | undefined;
+    const d = node?.getData<EntityNodeData>();
+    return { id: Number(nodeId), type: d?.type ?? "", value: d?.value ?? "", label: d?.label };
+  }
+
+  function allEntityOptions(): EntityOption[] {
+    return graph?.getNodes().map((n) => nodeSubject(n.id)) ?? [];
+  }
+
+  /** Every relationship this entity is part of, read straight off the live
+   *  graph — always in sync with the board, and (unlike a fetch to the
+   *  authenticated API) works the same way for an anonymous share guest,
+   *  since both already have the full node/edge set in front of them. */
+  function relatedRowsFor(nodeId: string): RelatedRow[] {
+    if (!graph) return [];
+    const node = graph.getCellById(nodeId) as Node | undefined;
+    if (!node?.isNode()) return [];
+    const rows: RelatedRow[] = [];
+    for (const edge of graph.getConnectedEdges(node) ?? []) {
+      const sourceId = edge.getSourceCellId();
+      const targetId = edge.getTargetCellId();
+      if (!sourceId || !targetId) continue;
+      const otherId = sourceId === nodeId ? targetId : sourceId;
+      const otherIs: "source" | "target" = sourceId === nodeId ? "target" : "source";
+      const otherNode = graph.getCellById(otherId) as Node | undefined;
+      if (!otherNode?.isNode()) continue;
+      rows.push({
+        relationshipId: edge.id,
+        relationType: edge.getData<{ relationType?: string }>()?.relationType ?? "",
+        otherIs,
+        other: nodeSubject(otherId),
+      });
+    }
+    return rows;
+  }
+
+  /** Applies an entity-field edit (from the detail panel) straight to the live
+   *  node — no server round-trip needed to see it, unlike a router.refresh(),
+   *  which would tear down and rebuild the whole canvas just to update one card. */
+  function applyEntityPatch(nodeId: string, patch: Partial<EntityNodeData>) {
+    const node = graph?.getCellById(nodeId) as Node | undefined;
+    if (node) {
+      const next = { ...node.getData<EntityNodeData>(), ...patch };
+      node.setData(next, { overwrite: true });
+      node.resize(NODE_WIDTH, entityNodeHeight(next));
+    }
+    setActiveNodeData((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
+  /** Renaming a relationship from the panel goes through the same
+   *  fetch-and-mutate pairing as every other edge edit here (reverse
+   *  direction, change connector) rather than a second, competing path. */
+  function renameRelationship(edgeId: string, nextRelationType: string) {
+    const edge = graph?.getCellById(edgeId);
+    if (edge?.isEdge()) {
+      edge.setLabels([relationshipLabel(nextRelationType)]);
+      edge.setData({ relationType: nextRelationType }, { overwrite: true });
+    }
+    if (!/^\d+$/.test(edgeId)) return;
+    fetch(`/api/relationships/${edgeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ relationType: nextRelationType }),
+    });
+  }
+
+  function addNoteLocally(nodeId: string, note: BoardNotePreview) {
+    setExtraNotes((prev) => ({ ...prev, [nodeId]: [note, ...(prev[nodeId] ?? [])] }));
+    const node = graph?.getCellById(nodeId) as Node | undefined;
+    if (node) {
+      const current = node.getData<EntityNodeData>();
+      const next = { ...current, noteCount: current.noteCount + 1 };
+      node.setData(next, { overwrite: true });
+      node.resize(NODE_WIDTH, entityNodeHeight(next));
+    }
+  }
+
+  function addRelationshipLocally(rel: { id: number; relationType: string; entityAId: number; entityBId: number }) {
+    graph?.addEdge({
+      id: String(rel.id),
+      shape: "relationship-edge",
+      source: String(rel.entityAId),
+      target: String(rel.entityBId),
+      vertices: [],
+      labels: [relationshipLabel(rel.relationType)],
+      data: { relationType: rel.relationType },
+    });
   }
 
   useEffect(() => {
@@ -887,10 +998,9 @@ export function InvestigationBoard({
       });
 
       g.on("selection:changed", ({ selected }) => {
-        const values = selected
-          .filter((cell) => cell.isNode())
-          .map((cell) => (cell as Node).getData<EntityNodeData>().value);
-        setSelectedValues(values);
+        const nodes = selected.filter((cell) => cell.isNode()) as Node[];
+        setSelectedValues(nodes.map((n) => n.getData<EntityNodeData>().value));
+        setSelectedNodeIds(nodes.map((n) => n.id));
       });
 
       g.on("edge:connected", ({ isNew, edge }) => {
@@ -899,7 +1009,7 @@ export function InvestigationBoard({
         const targetCellId = edge.getTargetCellId();
         g.removeCell(edge);
         if (!sourceCellId || !targetCellId) return;
-        setRelationType("");
+        setRelationType(DEFAULT_RELATION_TYPE);
         setPendingConnection({ source: sourceCellId, target: targetCellId });
       });
 
@@ -992,6 +1102,7 @@ export function InvestigationBoard({
       return [
         { label: "View details", onClick: () => viewEntityDetails(id) },
         { label: "Copy value", onClick: () => copyEntityValue(id) },
+        { label: "Add relationship…", onClick: () => setAddRelFrom(id) },
         { label: "Delete entity", danger: true, onClick: () => setConfirmDeleteEntity(id) },
       ];
     }
@@ -1071,23 +1182,34 @@ export function InvestigationBoard({
           onRedo={() => graph?.redo()}
         />
 
-        {showDetailPanel && activeNodeData && (
+        {showDetailPanel && activeNodeData && activeNodeId && (
           <EntityDetailPanel
+            key={activeNodeId}
             caseId={caseId}
             entityId={Number(activeNodeId)}
             data={activeNodeData}
-            notes={entityNotes[Number(activeNodeId)] ?? []}
+            notes={[...(extraNotes[activeNodeId] ?? []), ...(entityNotes[Number(activeNodeId)] ?? [])]}
             readOnly={readOnly}
             detailHref={shareToken ? undefined : `/cases/${caseId}/entities/${activeNodeId}`}
             showSuggestions={!shareToken}
             onClose={closeDetailPanel}
+            related={relatedRowsFor(activeNodeId)}
+            allEntities={allEntityOptions()}
+            onEntitySaved={(patch) => applyEntityPatch(activeNodeId, patch)}
+            onNoteAdded={(note) => addNoteLocally(activeNodeId, note)}
+            onRelationshipRenamed={renameRelationship}
+            onRelationshipDeleted={deleteEdge}
+            onRelationshipCreated={addRelationshipLocally}
+            onRequestDeleteEntity={() => setConfirmDeleteEntity(activeNodeId)}
           />
         )}
 
-        {showCombineToolbar && (
+        {showSelectionToolbar && (
           <BoardSelectionToolbar
             selectedValues={selectedValues}
             combinableRules={combinableRules}
+            canAddRelationship={canAddRelationshipPair}
+            onAddRelationship={() => setAddRelPair(true)}
             onClear={clearSelection}
           />
         )}
@@ -1115,12 +1237,12 @@ export function InvestigationBoard({
         title="Describe this relationship"
       >
         <div className="space-y-3">
-          <input
-            autoFocus
-            placeholder="e.g. found from, works with, same person as"
+          <RelationTypeInput
             value={relationType}
-            onChange={(e) => setRelationType(e.target.value)}
-            className="field"
+            onChange={setRelationType}
+            fromText={pendingConnection ? relationSubject(nodeSubject(pendingConnection.source)) : "…"}
+            toText={pendingConnection ? relationSubject(nodeSubject(pendingConnection.target)) : "…"}
+            autoFocus
             onKeyDown={(e) => e.key === "Enter" && confirmConnect()}
           />
           <div className="flex justify-end gap-2">
@@ -1159,6 +1281,33 @@ export function InvestigationBoard({
         onCancel={() => setConfirmDeleteEntity(null)}
         onConfirm={confirmDeleteEntityAction}
       />
+
+      {addRelFrom && (
+        <AddRelationshipModal
+          open
+          onClose={() => setAddRelFrom(null)}
+          caseId={caseId}
+          from={nodeSubject(addRelFrom)}
+          entities={allEntityOptions()}
+          refreshOnCreate={false}
+          onCreated={addRelationshipLocally}
+        />
+      )}
+
+      {addRelPair && selectedNodeIds.length === 2 && (
+        <AddRelationshipModal
+          open
+          onClose={() => setAddRelPair(false)}
+          caseId={caseId}
+          from={nodeSubject(selectedNodeIds[0])}
+          to={nodeSubject(selectedNodeIds[1])}
+          refreshOnCreate={false}
+          onCreated={(rel) => {
+            addRelationshipLocally(rel);
+            clearSelection();
+          }}
+        />
+      )}
 
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { IconTrash } from "@/components/icons";
 
 export function DeleteEntityButton({
   entityId,
@@ -43,8 +44,10 @@ export function DeleteEntityButton({
       <button
         onClick={() => setOpen(true)}
         className={placement === "row" ? "btn btn-row btn-row-danger" : "btn btn-danger btn-sm"}
+        aria-label="Delete entity"
+        title="Delete entity"
       >
-        Delete
+        {placement === "row" ? <IconTrash /> : "Delete"}
       </button>
 
       <ConfirmDialog

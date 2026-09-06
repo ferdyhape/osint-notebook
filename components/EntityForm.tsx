@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ENTITY_TYPES } from "@/lib/pivot";
+import { DEFAULT_RELATION_TYPE, relationSubject } from "@/lib/relationship";
 import { EntityTypeInput } from "@/components/EntityTypeInput";
+import { RelationTypeInput } from "@/components/RelationTypeInput";
 
 export type EntityFormValues = {
   id: number;
   type: string;
   value: string;
+  label?: string | null;
   source: string | null;
 };
 
@@ -16,19 +19,22 @@ type EntityFormProps = {
   caseId: number;
   /** Omit to create a new entity. */
   initial?: EntityFormValues;
-  /** Links the new entity back to the entity it was pivoted from. */
+  /** Links the new entity back to the entity it was pivoted from — and gives
+   *  the relation-type hint something to name on the "from" side. */
   relatedToEntityId?: number;
+  relatedFrom?: { type: string; label?: string | null };
   onDone?: () => void;
 };
 
-export function EntityForm({ caseId, initial, relatedToEntityId, onDone }: EntityFormProps) {
+export function EntityForm({ caseId, initial, relatedToEntityId, relatedFrom, onDone }: EntityFormProps) {
   const router = useRouter();
   const isEdit = Boolean(initial);
 
   const [type, setType] = useState(initial?.type ?? ENTITY_TYPES[0]);
   const [value, setValue] = useState(initial?.value ?? "");
+  const [label, setLabel] = useState(initial?.label ?? "");
   const [source, setSource] = useState(initial?.source ?? "");
-  const [relationType, setRelationType] = useState("found from");
+  const [relationType, setRelationType] = useState(DEFAULT_RELATION_TYPE);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +51,7 @@ export function EntityForm({ caseId, initial, relatedToEntityId, onDone }: Entit
           body: JSON.stringify({
             type,
             value,
+            label: label.trim() || null,
             source: source || null,
             ...(!isEdit && relatedToEntityId && { relatedToEntityId, relationType }),
           }),
@@ -56,6 +63,7 @@ export function EntityForm({ caseId, initial, relatedToEntityId, onDone }: Entit
       }
       if (!isEdit) {
         setValue("");
+        setLabel("");
         setSource("");
       }
       router.refresh();
@@ -86,13 +94,24 @@ export function EntityForm({ caseId, initial, relatedToEntityId, onDone }: Entit
         </div>
       </div>
 
+      <div>
+        <label className="label">Label (optional)</label>
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          className="field"
+          placeholder="A friendlier name to show instead of the raw value"
+        />
+      </div>
+
       {!isEdit && relatedToEntityId && (
         <div>
           <label className="label">Relationship to the entity it came from</label>
-          <input
+          <RelationTypeInput
             value={relationType}
-            onChange={(e) => setRelationType(e.target.value)}
-            className="field"
+            onChange={setRelationType}
+            fromText={relatedFrom ? relationSubject(relatedFrom) : "This entity"}
+            toText={label.trim() || type || "…"}
           />
         </div>
       )}

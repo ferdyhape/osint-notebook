@@ -41,13 +41,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!access.ok) return access.response;
 
   const body = await request.json();
-  const { type, value, attributes, source, positionX, positionY } = body;
+  const { type, value, label, attributes, source, positionX, positionY } = body;
 
   const updated = await prisma.entity.update({
     where: { id },
     data: {
       ...(type !== undefined && { type: normalizeType(type) }),
       ...(value !== undefined && { value: value.trim() }),
+      ...(label !== undefined && { label: typeof label === "string" && label.trim() ? label.trim() : null }),
       ...(attributes !== undefined && { attributes }),
       ...(source !== undefined && { source }),
       ...(positionX !== undefined && { positionX }),

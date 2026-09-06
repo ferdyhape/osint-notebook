@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { CaseCard } from "@/components/CaseCard";
 import { CaseFormModal } from "@/components/CaseFormModal";
+import { ImportCaseModal } from "@/components/ImportCaseModal";
 import { LandingPage } from "@/components/landing/LandingPage";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,21 @@ export default async function HomePage() {
   const myCases = allCases.filter((c) => c.userId === user.id);
   const sharedCases = allCases.filter((c) => c.userId !== user.id);
 
+  // An admin can browse (read-only) every case in the system, not just their
+  // own or ones shared with them — everything already visible above is
+  // excluded so nothing is listed twice.
+  const otherCases =
+    user.role === "admin"
+      ? await prisma.case.findMany({
+          where: { id: { notIn: allCases.map((c) => c.id) } },
+          orderBy: { updatedAt: "desc" },
+          include: {
+            _count: { select: { entities: true } },
+            owner: { select: { id: true, name: true, email: true } },
+          },
+        })
+      : [];
+
   const activeCount = myCases.filter((c) => c.status === "active").length;
   const totalEntities = myCases.reduce((sum, c) => sum + c._count.entities, 0);
 
@@ -58,7 +74,10 @@ export default async function HomePage() {
             </p>
           )}
         </div>
-        <CaseFormModal />
+        <div className="flex items-center gap-2">
+          <ImportCaseModal />
+          <CaseFormModal />
+        </div>
       </div>
 
       {myCases.length === 0 ? (
@@ -98,6 +117,30 @@ export default async function HomePage() {
                 entityCount={c._count.entities}
                 updatedAt={c.updatedAt.toISOString()}
                 badge={`Shared · ${roleFor(c)}`}
+                ownerName={c.owner.name ?? c.owner.email}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {otherCases.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="section-title">All cases</h2>
+          <p className="text-xs text-muted -mt-2">
+            Visible to you as an admin — read-only unless the owner also shares it with you directly.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {otherCases.map((c) => (
+              <CaseCard
+                key={c.id}
+                id={c.id}
+                name={c.name}
+                description={c.description}
+                status={c.status}
+                entityCount={c._count.entities}
+                updatedAt={c.updatedAt.toISOString()}
+                badge="Admin view"
                 ownerName={c.owner.name ?? c.owner.email}
               />
             ))}

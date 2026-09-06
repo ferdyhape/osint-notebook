@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import { PivotRuleFormModal } from "@/components/PivotRuleFormModal";
 import { PivotRulesTable } from "@/components/PivotRulesTable";
 
@@ -15,8 +17,12 @@ export const metadata: Metadata = {
 
 
 export default async function PivotRulesPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
   const rules = await prisma.pivotRule.findMany({
     orderBy: [{ entityType: "asc" }, { sortOrder: "asc" }],
+    include: { createdBy: { select: { name: true, email: true } } },
   });
 
   return (
@@ -25,13 +31,15 @@ export default async function PivotRulesPage() {
         <div>
           <h1 className="page-title">Pivot Rules</h1>
           <p className="text-sm text-muted mt-1.5 max-w-md">
-            The next steps suggested for each entity type.
+            The next steps suggested for each entity type. Built-in rules (no &ldquo;added by&rdquo;) can
+            only be changed or removed by an admin — anyone signed in can add their own.
           </p>
         </div>
         <PivotRuleFormModal />
       </div>
 
       <PivotRulesTable
+        currentUser={{ id: user.id, role: user.role }}
         rules={rules.map((r) => ({
           id: r.id,
           entityType: r.entityType,
@@ -41,6 +49,8 @@ export default async function PivotRulesPage() {
           urlTemplate: r.urlTemplate,
           category: r.category,
           combinable: r.combinable,
+          createdById: r.createdById,
+          createdByName: r.createdBy ? r.createdBy.name || r.createdBy.email : null,
         }))}
       />
     </div>

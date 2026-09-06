@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { IconEdit, IconTrash } from "@/components/icons";
 
 type NoteRow = {
   id: number;
@@ -101,24 +102,34 @@ export function NoteTimeline({ notes, readOnly = false }: { notes: NoteRow[]; re
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{n.content}</p>
                   {!readOnly && (
                     <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                      <button onClick={() => startEdit(n)} className="btn btn-row">
-                        Edit
+                      <button onClick={() => startEdit(n)} className="btn btn-row" aria-label="Edit note" title="Edit note">
+                        <IconEdit />
                       </button>
                       <button
                         onClick={() => setConfirmId(n.id)}
                         className="btn btn-row btn-row-danger"
+                        aria-label="Delete note"
+                        title="Delete note"
                       >
-                        Delete
+                        <IconTrash />
                       </button>
                     </div>
                   )}
                 </div>
-                <div className="mt-2 flex items-center gap-2 text-xs text-muted">
-                  <span className="font-data">{new Date(n.createdAt).toLocaleString("en-GB")}</span>
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted min-w-0">
+                  <span className="font-data shrink-0">{new Date(n.createdAt).toLocaleString("en-GB")}</span>
                   {n.entity && (
-                    <span className="badge">
-                      {n.entity.type}: {n.entity.value}
-                    </span>
+                    <>
+                      {/* Only the type in the badge, matching every other badge
+                       *  in the app — the value is plain text at the same size
+                       *  as the timestamp beside it, not blown up. */}
+                      <span className="badge shrink-0" title={n.entity.type}>
+                        {n.entity.type}
+                      </span>
+                      <span className="font-data truncate" title={n.entity.value}>
+                        {n.entity.value}
+                      </span>
+                    </>
                   )}
                 </div>
               </>

@@ -156,6 +156,17 @@ dialog::backdrop {
   color: var(--color-text);
 }
 
+/* `--color-accent-soft` reads fine as a selection tint against a plain page,
+   but every text input/textarea sits on `--color-surface-subtle` — a nearly
+   identical pale tone — so a selected range inside a field was practically
+   invisible. Fields get a stronger, higher-contrast tint of their own. */
+.field::selection,
+input::selection,
+textarea::selection {
+  background-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  color: var(--color-text);
+}
+
 /* Every reusable component class lives in this layer, one step below
    Tailwind's own `utilities` layer — so a utility class placed alongside one
    of these in JSX (e.g. `className="field w-auto"`) always wins, the same
@@ -429,6 +440,7 @@ dialog::backdrop {
 .badge {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   font-family: var(--font-body);
   font-weight: 500;
   font-size: 0.6875rem;
@@ -439,6 +451,12 @@ dialog::backdrop {
   border: 1px solid var(--color-border);
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
+  /* A multi-word type ("birthday date") used to wrap onto a second line inside
+     the pill, which broke its rounded shape. One line, truncated instead —
+     pair with a `title` attribute wherever the full text might not fit. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .badge-accent {

@@ -9,11 +9,15 @@ import {
 } from "d3-force";
 import { prisma } from "@/lib/prisma";
 import { relationshipLabel } from "@/lib/edge-label-style";
+import { NODE_WIDTH, entityNodeHeight } from "@/lib/board-layout";
+
+export { NODE_WIDTH, entityNodeHeight };
 
 export type BoardEntity = {
   id: number;
   type: string;
   value: string;
+  label: string | null;
   source: string | null;
   positionX: number | null;
   positionY: number | null;
@@ -46,6 +50,7 @@ export type BoardNote = {
 export type EntityNodeData = {
   type: string;
   value: string;
+  label: string | null;
   source: string | null;
   noteCount: number;
   /** Client-only, toggled at runtime — true while this is the guest's single
@@ -56,29 +61,6 @@ export type EntityNodeData = {
    *  its drag-to-connect ring for viewers/guests. Always absent from the server. */
   readOnly?: boolean;
 };
-
-// X6 nodes need explicit dimensions, unlike a React Flow node's auto-sizing div.
-// Width is fixed (long values truncate rather than reflowing the board), height
-// is derived per entity: a card carrying neither a source nor any notes is two
-// lines tall, and padding every card out to the tallest possible one left most
-// of them visibly half empty. The constants below mirror EntityNode.tsx's own
-// spacing — keep them in step with it.
-export const NODE_WIDTH = 248;
-const RING_INSET = 16; // EntityNode's `inset-[16px]` drag-to-connect ring margin, per side
-const CARD_PADDING_Y = 12; // `py-3`, per side
-const CARD_BORDER = 1; // `.card` border, per side
-const HEADER_HEIGHT = 35; // type eyebrow + value line (taller than the 32px type chip beside it)
-const SOURCE_LINE = 20; // `mt-0.5` + one `text-xs` line
-const NOTE_ROW = 37; // `mt-2.5` + `pt-2` + 1px divider + one `text-xs` line
-
-export function entityNodeHeight(entity: { source: string | null; noteCount: number }) {
-  return (
-    2 * (RING_INSET + CARD_PADDING_Y + CARD_BORDER) +
-    HEADER_HEIGHT +
-    (entity.source ? SOURCE_LINE : 0) +
-    (entity.noteCount > 0 ? NOTE_ROW : 0)
-  );
-}
 
 /** One Prisma query shared by the owner-side board route and the public share route. */
 export async function fetchCaseBoardData(caseId: number) {
@@ -95,6 +77,7 @@ export async function fetchCaseBoardData(caseId: number) {
           id: true,
           type: true,
           value: true,
+          label: true,
           source: true,
           positionX: true,
           positionY: true,
@@ -132,6 +115,7 @@ export async function fetchCaseBoardData(caseId: number) {
     id: e.id,
     type: e.type,
     value: e.value,
+    label: e.label,
     source: e.source,
     positionX: e.positionX,
     positionY: e.positionY,
@@ -235,7 +219,7 @@ export function entitiesToNodes(
       y: pos.y,
       width: NODE_WIDTH,
       height: entityNodeHeight(e),
-      data: { type: e.type, value: e.value, source: e.source, noteCount: e.noteCount },
+      data: { type: e.type, value: e.value, label: e.label, source: e.source, noteCount: e.noteCount },
     };
   });
 }

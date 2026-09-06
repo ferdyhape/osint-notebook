@@ -125,6 +125,7 @@ export default async function CaseDetailPage({
             id: e.id,
             type: e.type,
             value: e.value,
+            label: e.label,
             source: e.source,
             createdAt: e.createdAt.toISOString(),
           }))}

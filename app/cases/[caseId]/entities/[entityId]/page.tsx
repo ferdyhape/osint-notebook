@@ -10,6 +10,7 @@ import { PivotSuggestionsPanel } from "@/components/PivotSuggestionsPanel";
 import { EntityFormModal } from "@/components/EntityFormModal";
 import { DeleteEntityButton } from "@/components/DeleteEntityButton";
 import { CopyButton } from "@/components/CopyButton";
+import { RelatedEntitiesList, type RelatedRow } from "@/components/RelatedEntitiesList";
 import { isUrlValue } from "@/lib/pivot";
 
 export const dynamic = "force-dynamic";
@@ -58,9 +59,19 @@ export default async function EntityDetailPage({
 
   const foundVia = entity.relationshipsB.map((r) => r.entityA);
 
-  const related = [
-    ...entity.relationshipsA.map((r) => ({ relationType: r.relationType, other: r.entityB })),
-    ...entity.relationshipsB.map((r) => ({ relationType: r.relationType, other: r.entityA })),
+  const related: RelatedRow[] = [
+    ...entity.relationshipsA.map((r) => ({
+      relationshipId: r.id,
+      relationType: r.relationType,
+      otherIs: "target" as const,
+      other: { id: r.entityB.id, type: r.entityB.type, value: r.entityB.value, label: r.entityB.label },
+    })),
+    ...entity.relationshipsB.map((r) => ({
+      relationshipId: r.id,
+      relationType: r.relationType,
+      otherIs: "source" as const,
+      other: { id: r.entityA.id, type: r.entityA.type, value: r.entityA.value, label: r.entityA.label },
+    })),
   ];
 
   return (
@@ -86,7 +97,8 @@ export default async function EntityDetailPage({
             </div>
           )}
 
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
+          {entity.label && <p className="text-sm font-medium text-muted mt-2">{entity.label}</p>}
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <h1 className="text-xl font-medium break-all">
               {isUrlValue(entity.value) ? (
                 <a
@@ -101,13 +113,22 @@ export default async function EntityDetailPage({
                 <span className="font-data">{entity.value}</span>
               )}
             </h1>
-            <span className="badge">{entity.type}</span>
+            {/* Beside the value, not inside the actions row — so it never
+             *  competes with "what does Copy even copy here?" (there's only
+             *  one thing to copy: the value right next to it). */}
+            <CopyButton value={entity.value} className="btn btn-row" label="Copy value" />
+            <span className="badge" title={entity.type}>
+              {entity.type}
+            </span>
           </div>
-          {entity.source && <p className="text-sm text-muted mt-1">Source: {entity.source}</p>}
+          {entity.source && (
+            <p className="text-sm text-muted mt-1 break-words" title={entity.source}>
+              Source: {entity.source}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <CopyButton value={entity.value} className="btn btn-sm" />
           {canEdit && (
             <>
               <EntityFormModal
@@ -117,6 +138,7 @@ export default async function EntityDetailPage({
                   id: entity.id,
                   type: entity.type,
                   value: entity.value,
+                  label: entity.label,
                   source: entity.source,
                 }}
               />
@@ -134,35 +156,21 @@ export default async function EntityDetailPage({
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-3">
           <h2 className="section-title">Suggested next steps</h2>
-          <PivotSuggestionsPanel caseId={caseIdNum} entityId={entityIdNum} />
+          <PivotSuggestionsPanel
+            caseId={caseIdNum}
+            entityId={entityIdNum}
+            entityType={entity.type}
+            entityLabel={entity.label}
+          />
         </div>
 
         <div className="space-y-8">
-          <div className="space-y-3">
-            <h2 className="section-title">Related entities</h2>
-            {related.length === 0 ? (
-              <div className="card border-dashed p-8 text-center">
-                <p className="text-sm text-muted">Nothing linked to this yet.</p>
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {related.map((r, i) => (
-                  <li key={i} className="card p-3.5 text-sm flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className="text-muted">{r.relationType}: </span>
-                      <Link
-                        href={`/cases/${caseIdNum}/entities/${r.other.id}`}
-                        className="font-data font-medium hover:text-accent"
-                      >
-                        {r.other.value}
-                      </Link>
-                    </div>
-                    <span className="badge shrink-0">{r.other.type}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <RelatedEntitiesList
+            caseId={caseIdNum}
+            current={{ id: entity.id, type: entity.type, value: entity.value, label: entity.label }}
+            related={related}
+            readOnly={!canEdit}
+          />
 
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
