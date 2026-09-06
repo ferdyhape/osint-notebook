@@ -41,7 +41,7 @@ export function ProfileDetailsForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card p-4 space-y-3">
+    <form onSubmit={handleSubmit} className="card flex-1 flex flex-col p-4 space-y-3">
       <div>
         <label className="label">Name (optional)</label>
         <input value={name} onChange={(e) => setName(e.target.value)} className="field" />
@@ -61,7 +61,7 @@ export function ProfileDetailsForm({
           {feedback.text}
         </p>
       )}
-      <div className="flex justify-end">
+      <div className="flex justify-end mt-auto">
         <button type="submit" disabled={submitting} className="btn btn-primary disabled:opacity-50">
           {submitting ? "Saving…" : "Save profile"}
         </button>
@@ -108,7 +108,7 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card p-4 space-y-3">
+    <form onSubmit={handleSubmit} className="card flex-1 flex flex-col p-4 space-y-3">
       <div>
         <label className="label">Current password</label>
         <input
@@ -156,7 +156,7 @@ export function ChangePasswordForm() {
           {feedback.text}
         </p>
       )}
-      <div className="flex justify-end">
+      <div className="flex justify-end mt-auto">
         <button type="submit" disabled={submitting} className="btn btn-primary disabled:opacity-50">
           {submitting ? "Saving…" : "Change password"}
         </button>

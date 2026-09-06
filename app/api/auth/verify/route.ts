@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { appUrl } from "@/lib/mail";
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
-  const redirectTo = (path: string) => NextResponse.redirect(new URL(path, request.url));
+  // Built from APP_URL, not `request.url` — behind the aaPanel reverse proxy
+  // the Host Next.js actually sees on the internal 127.0.0.1:3000 connection
+  // isn't reliably the public domain, so a redirect built from the request
+  // itself came out as http://localhost:3000 in production.
+  const redirectTo = (path: string) => NextResponse.redirect(appUrl(path));
 
   if (!token) return redirectTo("/?verify=missing");
 

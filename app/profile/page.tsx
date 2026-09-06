@@ -24,14 +24,22 @@ export default async function ProfilePage() {
 
       {/* Side-by-side once there's room for it — stacked on top of each other
        *  in a narrow max-w-lg column left the right half of a desktop screen
-       *  as dead space. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-3xl">
-        <section className="space-y-3">
+       *  as dead space. No max-width of its own: it fills the page's own
+       *  container (see the max-w-5xl <main> in layout.tsx) the same way
+       *  every other page here does, rather than capping short of it and
+       *  leaving a second, narrower band of whitespace on the right. Grid
+       *  items stretch to the row's height by default, so each `section` is
+       *  already as tall as its sibling; `flex flex-col` plus the card's own
+       *  `flex-1` (see ProfileForms.tsx) carries that height down into the
+       *  visible card, so the two line up evenly like a Bootstrap `col-6`
+       *  pair rather than each card stopping at its own content. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+        <section className="flex flex-col space-y-3">
           <h2 className="section-title">Profile</h2>
           <ProfileDetailsForm initial={{ email: user.email, name: user.name }} />
         </section>
 
-        <section className="space-y-3">
+        <section className="flex flex-col space-y-3">
           <h2 className="section-title">Password</h2>
           <ChangePasswordForm />
         </section>
