@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AddRelationshipModal, type EntityOption } from "@/components/AddRelationshipModal";
 import { RelationTypeInput } from "@/components/RelationTypeInput";
+import { RelationshipRow } from "@/components/RelationshipRow";
 import { IconEdit, IconTrash, IconPlus } from "@/components/icons";
 import { relationSubject } from "@/lib/relationship";
 
@@ -115,62 +115,38 @@ export function RelatedEntitiesList({
                   </div>
                 ) : (
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 truncate">
-                      {r.otherIs === "target" ? (
-                        <>
-                          <span className="text-muted">
-                            {currentSubject} {r.relationType}{" "}
-                          </span>
-                          <Link
-                            href={`/cases/${caseId}/entities/${r.other.id}`}
-                            className="font-data font-medium hover:text-accent"
-                          >
-                            {otherSubject}: {r.other.value}
-                          </Link>
-                        </>
-                      ) : (
-                        <>
-                          <Link
-                            href={`/cases/${caseId}/entities/${r.other.id}`}
-                            className="font-data font-medium hover:text-accent"
-                          >
-                            {otherSubject}: {r.other.value}
-                          </Link>
-                          <span className="text-muted">
-                            {" "}
-                            {r.relationType} {currentSubject}
-                          </span>
-                        </>
-                      )}
+                    <div className="min-w-0 font-data text-sm">
+                      <RelationshipRow
+                        caseId={caseId}
+                        relationType={r.relationType}
+                        otherIs={r.otherIs}
+                        current={current}
+                        other={r.other}
+                      />
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="badge" title={r.other.type}>
-                        {r.other.type}
-                      </span>
-                      {!readOnly && (
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => {
-                              setEditingId(r.relationshipId);
-                              setDraft(r.relationType);
-                            }}
-                            className="btn btn-row"
-                            aria-label="Edit relationship"
-                            title="Edit relationship"
-                          >
-                            <IconEdit />
-                          </button>
-                          <button
-                            onClick={() => remove(r.relationshipId)}
-                            className="btn btn-row btn-row-danger"
-                            aria-label="Delete relationship"
-                            title="Delete relationship"
-                          >
-                            <IconTrash />
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    {!readOnly && (
+                      <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => {
+                            setEditingId(r.relationshipId);
+                            setDraft(r.relationType);
+                          }}
+                          className="btn btn-row"
+                          aria-label="Edit relationship"
+                          title="Edit relationship"
+                        >
+                          <IconEdit />
+                        </button>
+                        <button
+                          onClick={() => remove(r.relationshipId)}
+                          className="btn btn-row btn-row-danger"
+                          aria-label="Delete relationship"
+                          title="Delete relationship"
+                        >
+                          <IconTrash />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </li>

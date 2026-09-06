@@ -48,35 +48,10 @@ export function relationSubject(entity: { type: string; label?: string | null })
   return entity.label?.trim() || entity.type;
 }
 
-/**
- * The one canonical description of a relationship row, built the same way
- * everywhere it's rendered (entity detail page, board panel) so "source
- * found target" always reads the same, regardless of which of the two
- * entities happens to be the page you're looking at.
- *
- * `perspective` says which side the *other* entity (the one this row should
- * link to) is on — "source" when the current entity is entityB and the
- * other one is entityA, "target" when it's the reverse. The current entity's
- * own value is never repeated (it's already the page you're on); the other
- * entity's value is always the part that's shown in full and linked.
- */
-export function relationshipSentence(args: {
-  currentType: string;
-  currentLabel?: string | null;
-  otherType: string;
-  otherLabel?: string | null;
-  otherValue: string;
-  relationType: string;
-  /** Is `other` the source (entityA) or the target/found entity (entityB) of this relationship? */
-  otherIs: "source" | "target";
-}) {
-  const current = relationSubject({ type: args.currentType, label: args.currentLabel });
-  const other = relationSubject({ type: args.otherType, label: args.otherLabel });
-
-  if (args.otherIs === "target") {
-    // current = source, other = found. "{current} {relation} {other}: {value}"
-    return { prefix: `${current} ${args.relationType} `, otherText: other, suffix: "", value: args.otherValue };
-  }
-  // current = found, other = source. "{other}: {value} {relation} {current}"
-  return { prefix: "", otherText: other, suffix: ` ${args.relationType} ${current}`, value: args.otherValue };
+/** End-truncates a string for a one-line sentence, with the full text still
+ *  reachable via a `title` attribute at the call site. Without this, a single
+ *  long value (a long URL, say) swallows the rest of the sentence — the
+ *  relation and the other entity — rather than just clipping its own segment. */
+export function clip(text: string, max: number) {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }

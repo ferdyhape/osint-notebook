@@ -6,6 +6,7 @@ import { PivotSuggestionsPanel } from "@/components/PivotSuggestionsPanel";
 import { CopyButton } from "@/components/CopyButton";
 import { AddRelationshipModal, type EntityOption } from "@/components/AddRelationshipModal";
 import { RelationTypeInput } from "@/components/RelationTypeInput";
+import { RelationshipRow } from "@/components/RelationshipRow";
 import { EntityTypeInput } from "@/components/EntityTypeInput";
 import { IconEdit, IconTrash, IconPlus, IconClose } from "@/components/icons";
 import { isUrlValue } from "@/lib/pivot";
@@ -272,22 +273,14 @@ export function EntityDetailPanel({
                       </div>
                     ) : (
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs min-w-0 truncate">
-                          {r.otherIs === "target" ? (
-                            <>
-                              <span className="text-muted">{currentSubject} {r.relationType} </span>
-                              <Link href={`/cases/${caseId}/entities/${r.other.id}`} className="font-medium hover:text-accent">
-                                {otherSubject}: {r.other.value}
-                              </Link>
-                            </>
-                          ) : (
-                            <>
-                              <Link href={`/cases/${caseId}/entities/${r.other.id}`} className="font-medium hover:text-accent">
-                                {otherSubject}: {r.other.value}
-                              </Link>
-                              <span className="text-muted"> {r.relationType} {currentSubject}</span>
-                            </>
-                          )}
+                        <p className="font-data text-xs min-w-0">
+                          <RelationshipRow
+                            caseId={caseId}
+                            relationType={r.relationType}
+                            otherIs={r.otherIs}
+                            current={currentAsOption}
+                            other={r.other}
+                          />
                         </p>
                         {canEdit && (
                           <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
