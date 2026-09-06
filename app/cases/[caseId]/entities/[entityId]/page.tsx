@@ -46,12 +46,17 @@ export default async function EntityDetailPage({
   if (!role) notFound();
   const canEdit = role === "owner" || role === "editor";
 
+  // entityB/entityA are trimmed to what RelatedEntitiesList's `related` (and
+  // the trail of `foundVia` parents above it) actually reads — the full row
+  // includes `attributes` (a Json blob) and position/timestamp columns that
+  // would otherwise ride along for nothing.
+  const relatedEntitySelect = { id: true, type: true, value: true, label: true } as const;
   const entity = await prisma.entity.findUnique({
     where: { id: entityIdNum },
     include: {
-      notes: { orderBy: { createdAt: "desc" } },
-      relationshipsA: { include: { entityB: true } },
-      relationshipsB: { include: { entityA: true } },
+      notes: { orderBy: { createdAt: "desc" }, select: { id: true, content: true, createdAt: true } },
+      relationshipsA: { select: { id: true, relationType: true, entityB: { select: relatedEntitySelect } } },
+      relationshipsB: { select: { id: true, relationType: true, entityA: { select: relatedEntitySelect } } },
     },
   });
 

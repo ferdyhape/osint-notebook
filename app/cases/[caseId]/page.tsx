@@ -55,8 +55,19 @@ export default async function CaseDetailPage({
     prisma.case.findUnique({
       where: { id },
       include: {
-        entities: { orderBy: { createdAt: "desc" } },
-        notes: { orderBy: { createdAt: "desc" }, include: { entity: true } },
+        entities: {
+          orderBy: { createdAt: "desc" },
+          select: { id: true, type: true, value: true, label: true, source: true, createdAt: true },
+        },
+        notes: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            entity: { select: { id: true, type: true, value: true } },
+          },
+        },
       },
     }),
     prisma.pivotRule.findMany({ where: { combinable: true }, orderBy: { sortOrder: "asc" } }),
