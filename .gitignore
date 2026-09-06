@@ -44,6 +44,10 @@ next-env.d.ts
 # local deployment notes
 DEPLOY-AAPANEL.md
 
+# working plans for an in-progress refactor pass — a local scratch document,
+# not project documentation meant to outlive the branch it was written for
+REFACTOR-PLAN.md
+
 # logo/icon work in progress
 /brand
 
